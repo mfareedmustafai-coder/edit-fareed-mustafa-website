@@ -1,0 +1,3471 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Fareed Mustafai Website — WordPress Live Visual Editor</title>
+
+    <!-- Firebase SDKs (Exact match with Website & Admin Panel) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --wp-dark: #1d2327;
+            --wp-darker: #101517;
+            --wp-blue: #2271b1;
+            --wp-blue-hover: #135e96;
+            --brand: #006b54;
+            --brand-dark: #004d3d;
+            --brand-soft: #eef9f6;
+            --gold: #d4af37;
+            --gold-light: #ffd700;
+            --danger: #d63638;
+            --success: #00a32a;
+            --warning: #dba617;
+            --panel-bg: #ffffff;
+            --canvas-bg: #f0f2f5;
+            --border: #dcdcde;
+            --text: #1d2327;
+            --text-muted: #646970;
+            --radius: 10px;
+            --shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Outfit', 'Segoe UI', Tahoma, sans-serif;
+            background: var(--canvas-bg);
+            color: var(--text);
+            line-height: 1.6;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ========== LOGIN SCREEN ========== */
+        #loginScreen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: linear-gradient(135deg, #00382c 0%, #006b54 55%, #004d3d 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .login-card {
+            background: #fff;
+            border-radius: 18px;
+            max-width: 440px;
+            width: 100%;
+            padding: 34px 28px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+            border-top: 6px solid var(--gold);
+            text-align: center;
+        }
+        .login-card .wp-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--brand-soft);
+            color: var(--brand-dark);
+            border: 1px solid var(--brand);
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+        .login-card h1 {
+            color: var(--brand-dark);
+            font-size: 1.55rem;
+            margin-bottom: 6px;
+        }
+        .login-card p.sub {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+        .login-field {
+            text-align: right;
+            margin-bottom: 14px;
+        }
+        .login-field label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--brand-dark);
+            margin-bottom: 5px;
+        }
+        .login-field input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.96rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .login-field input:focus { border-color: var(--brand); }
+        .login-btn {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+            color: #fff;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .login-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,107,84,0.3); }
+        .quick-fill-note {
+            background: var(--brand-soft);
+            border: 1px dashed var(--brand);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            color: var(--brand-dark);
+            margin-bottom: 14px;
+            cursor: pointer;
+        }
+        #loginError { color: var(--danger); font-size: 0.88rem; font-weight: 700; margin-top: 10px; min-height: 22px; }
+
+        /* ========== WORDPRESS TOP ADMIN BAR ========== */
+        #editorShell {
+            display: none;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+        }
+        .wp-topbar {
+            background: var(--wp-dark);
+            color: #fff;
+            min-height: 54px;
+            padding: 6px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            border-bottom: 2px solid var(--gold);
+            z-index: 200;
+        }
+        .wp-brand-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .wp-logo-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+            color: var(--gold-light);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 0.92rem;
+            border: 1px solid rgba(255,215,0,0.4);
+        }
+        .doc-status-pill {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.18);
+            color: #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            max-width: 260px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .dirty-dot {
+            display: none;
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--gold-light);
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .dirty-dot.visible { display: inline-block; }
+
+        .wp-toolbar-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .tb-btn {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.16);
+            padding: 6px 11px;
+            border-radius: 7px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-family: inherit;
+            transition: background 0.15s;
+            text-decoration: none;
+        }
+        .tb-btn:hover { background: rgba(255,255,255,0.2); }
+        .tb-btn.active { background: var(--wp-blue); border-color: var(--wp-blue); color: #fff; }
+        .tb-btn.publish-btn {
+            background: linear-gradient(135deg, #00a32a, #007a20);
+            border-color: #4ade80;
+            color: #fff;
+            font-weight: 800;
+            padding: 7px 15px;
+            box-shadow: 0 2px 10px rgba(0,163,42,0.35);
+        }
+        .tb-btn.publish-btn:hover { filter: brightness(1.08); }
+        .tb-btn.danger-btn { background: rgba(214,54,56,0.85); border-color: #f87171; }
+        .tb-sep { width: 1px; height: 22px; background: rgba(255,255,255,0.2); margin: 0 2px; }
+
+        /* ========== 3-PANE WORKSPACE ========== */
+        .wp-workspace {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 315px 1fr 300px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .sidebar-panel {
+            background: var(--panel-bg);
+            border-left: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 50;
+        }
+        .sidebar-tabs {
+            display: flex;
+            background: #f6f7f7;
+            border-bottom: 1px solid var(--border);
+        }
+        .sidebar-tab {
+            flex: 1;
+            padding: 10px 6px;
+            border: none;
+            background: transparent;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-family: inherit;
+        }
+        .sidebar-tab.active {
+            color: var(--brand-dark);
+            background: #fff;
+            border-bottom-color: var(--brand);
+        }
+        .sidebar-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .sidebar-search-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .sidebar-search-row input {
+            flex: 1;
+            padding: 8px 10px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-family: inherit;
+        }
+        .sidebar-search-row input:focus { outline: none; border-color: var(--brand); }
+        .nav-cat-chips {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .nav-cat-chip {
+            flex: 1 1 auto;
+            border: 1.5px solid var(--border);
+            background: #f8fafc;
+            color: var(--text);
+            border-radius: 20px;
+            padding: 5px 8px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .nav-cat-chip.active {
+            background: var(--brand);
+            color: #fff;
+            border-color: var(--brand);
+        }
+
+        .action-mini-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .btn-wp-primary {
+            background: var(--brand);
+            color: #fff;
+            border: none;
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        .btn-wp-primary:hover { background: var(--brand-dark); }
+        .btn-wp-secondary {
+            background: var(--wp-blue);
+            color: #fff;
+            border: none;
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        .btn-wp-secondary:hover { background: var(--wp-blue-hover); }
+        .btn-wp-outline {
+            background: #fff;
+            color: var(--text);
+            border: 1.5px solid var(--border);
+            padding: 7px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-wp-outline:hover { border-color: var(--brand); color: var(--brand); }
+
+        .group-label {
+            font-size: 0.74rem;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin: 12px 0 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .item-row {
+            padding: 8px 10px;
+            border: 1px solid #eceeef;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            transition: all 0.15s;
+        }
+        .item-row:hover { border-color: var(--brand); background: var(--brand-soft); }
+        .item-row.selected { border-color: var(--wp-blue); background: #eef6fc; box-shadow: 0 0 0 2px rgba(34,113,177,0.18); }
+        .item-row-main { min-width: 0; flex: 1; }
+        .item-row-title { font-size: 0.84rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .item-row-sub { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .badge-edited {
+            background: #fff3cd;
+            color: #856404;
+            font-size: 0.65rem;
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* Gutenberg Block Tiles */
+        .blocks-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .block-tile {
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 11px 8px;
+            text-align: center;
+            cursor: pointer;
+            background: #fff;
+            transition: all 0.15s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        .block-tile:hover { border-color: var(--brand); background: var(--brand-soft); transform: translateY(-1px); }
+        .block-tile i, .block-tile .bt-icon { font-size: 1.35rem; color: var(--brand); }
+        .block-tile span { font-size: 0.76rem; font-weight: 700; color: var(--text); }
+
+        /* ========== CENTER LIVE CANVAS ========== */
+        .canvas-stage {
+            background: #dfe3e8;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        .inline-format-ribbon {
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            padding: 7px 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-wrap: wrap;
+            z-index: 20;
+        }
+        .fmt-btn {
+            background: #f6f7f7;
+            border: 1px solid #dcdcde;
+            border-radius: 6px;
+            padding: 5px 9px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text);
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .fmt-btn:hover { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-dark); }
+        .fmt-select {
+            padding: 4px 6px;
+            border: 1px solid #dcdcde;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            background: #fff;
+            font-family: inherit;
+        }
+
+        .canvas-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 16px 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .canvas-viewport {
+            width: 100%;
+            max-width: 980px;
+            background: #f8fbf9;
+            border-radius: 14px;
+            box-shadow: 0 12px 38px rgba(0,0,0,0.14);
+            border: 1px solid #cfd6dc;
+            overflow: visible;
+            transition: max-width 0.25s ease;
+        }
+        .canvas-viewport.tablet { max-width: 720px; }
+        .canvas-viewport.mobile { max-width: 390px; }
+
+        .canvas-page-banner {
+            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+            color: #fff;
+            padding: 16px 22px;
+            border-radius: 13px 13px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .canvas-title-input {
+            background: rgba(255,255,255,0.14);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #fff;
+            font-size: 1.25rem;
+            font-weight: 800;
+            padding: 7px 12px;
+            border-radius: 8px;
+            width: 100%;
+            font-family: inherit;
+            text-align: right;
+        }
+        .canvas-title-input::placeholder { color: rgba(255,255,255,0.65); }
+
+        #visualCanvas {
+            padding: 22px;
+            min-height: 460px;
+            direction: rtl;
+            text-align: right;
+            font-size: 1.04rem;
+            line-height: 1.85;
+            color: #18221e;
+            outline: none;
+            position: relative;
+        }
+        #visualCanvas h1, #visualCanvas h2, #visualCanvas h3 {
+            color: var(--brand);
+            border-bottom: 2px solid #e0efea;
+            padding-bottom: 8px;
+            margin: 14px 0 10px;
+        }
+        #visualCanvas a { color: var(--brand); font-weight: 700; }
+        #visualCanvas img { max-width: 100%; height: auto; border-radius: 10px; }
+        #visualCanvas video { max-width: 100%; border-radius: 10px; }
+        #visualCanvas iframe { pointer-events: none; }
+
+        .wp-editable-hover {
+            outline: 2px dashed rgba(34, 113, 177, 0.55) !important;
+            outline-offset: 3px;
+        }
+        .wp-selected-block {
+            outline: 2.5px solid var(--wp-blue) !important;
+            outline-offset: 4px;
+            border-radius: 6px;
+        }
+
+        /* Floating Elementor/WordPress Action Pill above selected element */
+        #floatingBlockBar {
+            position: fixed;
+            display: none;
+            background: var(--wp-dark);
+            color: #fff;
+            padding: 6px 8px;
+            border-radius: 10px;
+            box-shadow: 0 8px 26px rgba(0,0,0,0.32);
+            z-index: 400;
+            align-items: center;
+            flex-wrap: wrap;
+            max-width: calc(100vw - 20px);
+            gap: 4px;
+            font-size: 0.78rem;
+            border: 1.5px solid var(--gold);
+        }
+        #floatingBlockBar button {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            color: #fff;
+            padding: 5px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.77rem;
+            font-weight: 700;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        #floatingBlockBar button.fb-quick-btn {
+            background: rgba(0, 107, 84, 0.65);
+            border-color: rgba(212, 175, 55, 0.65);
+            color: #fff;
+        }
+        #floatingBlockBar .fb-sep {
+            width: 1px;
+            height: 18px;
+            background: rgba(255,255,255,0.22);
+            margin: 0 2px;
+        }
+        #floatingBlockBar button:hover { background: rgba(255,255,255,0.22); }
+        #floatingBlockBar button.fb-quick-btn:hover { background: var(--brand); }
+        #floatingBlockBar button.del:hover { background: var(--danger); }
+        #floatingBlockBar .fb-prompt-label {
+            color: var(--gold-light);
+            font-weight: 800;
+            font-size: 0.78rem;
+            padding: 0 5px;
+            white-space: nowrap;
+        }
+        #floatingBlockBar button.fb-pos-btn {
+            background: linear-gradient(135deg, #007960, #005744);
+            border: 1.5px solid var(--gold);
+            color: #fff;
+            padding: 5px 10px;
+        }
+        #floatingBlockBar button.fb-pos-btn:hover {
+            background: var(--brand);
+            filter: brightness(1.08);
+        }
+
+        /* In-page Above/Below Insert & Edit Slot (automatically stripped on save) */
+        .wp-insert-slot {
+            margin: 14px 0;
+            padding: 12px 14px;
+            background: linear-gradient(135deg, #eef9f6, #f7fcf9);
+            border: 2px dashed var(--brand);
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 107, 84, 0.14);
+            direction: rtl;
+            text-align: right;
+            user-select: text;
+        }
+        .wp-insert-slot-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 0.84rem;
+            font-weight: 800;
+            color: var(--brand-dark);
+        }
+        .wp-slot-close {
+            background: #fff;
+            color: var(--danger);
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+            padding: 2px 9px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .wp-slot-text {
+            background: #fff;
+            border: 1.5px solid #b6d8cc;
+            border-radius: 8px;
+            padding: 10px 12px;
+            min-height: 52px;
+            font-size: 0.98rem;
+            line-height: 1.7;
+            color: #18221e;
+            outline: none;
+            margin-bottom: 10px;
+        }
+        .wp-slot-text:focus {
+            border-color: var(--brand);
+            box-shadow: 0 0 0 3px rgba(0,107,84,0.14);
+        }
+        .wp-slot-text:empty:before {
+            content: attr(data-placeholder);
+            color: #6b7280;
+            pointer-events: none;
+        }
+        .wp-slot-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            align-items: center;
+        }
+        .wp-slot-btn {
+            background: var(--wp-dark);
+            color: #fff;
+            border: 1.5px solid var(--gold);
+            padding: 7px 12px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .wp-slot-btn.primary {
+            background: var(--brand);
+            border-color: var(--gold);
+        }
+        .wp-slot-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+        #codeEditorWrapper {
+            display: none;
+            padding: 18px;
+        }
+        #htmlCodeTextarea {
+            width: 100%;
+            min-height: 480px;
+            background: #141a1d;
+            color: #a7f3d0;
+            border: 2px solid var(--brand);
+            border-radius: 10px;
+            padding: 14px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.88rem;
+            direction: ltr;
+            text-align: left;
+            line-height: 1.55;
+            resize: vertical;
+        }
+
+        /* ========== RIGHT INSPECTOR SIDEBAR ========== */
+        .inspector-group {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .inspector-group h4 {
+            font-size: 0.86rem;
+            color: var(--brand-dark);
+            margin-bottom: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 6px;
+        }
+        .form-field { margin-bottom: 10px; }
+        .form-field label {
+            display: block;
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        .form-field input[type="text"],
+        .form-field input[type="url"],
+        .form-field input[type="number"],
+        .form-field select,
+        .form-field textarea {
+            width: 100%;
+            padding: 7px 9px;
+            border: 1.5px solid var(--border);
+            border-radius: 7px;
+            font-size: 0.84rem;
+            font-family: inherit;
+            background: #fff;
+        }
+        .form-field input:focus, .form-field textarea:focus, .form-field select:focus {
+            outline: none; border-color: var(--brand);
+        }
+        .color-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .color-row input[type="color"] {
+            width: 42px;
+            height: 32px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            padding: 2px;
+        }
+
+        /* ========== MODALS (Media Library / Link / Revisions / New Page / Announcements) ========== */
+        .wp-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.62);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 16px;
+        }
+        .wp-modal-backdrop.active { display: flex; }
+        .wp-modal-box {
+            background: #fff;
+            border-radius: 14px;
+            max-width: 720px;
+            width: 100%;
+            max-height: 88vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+            border-top: 5px solid var(--brand);
+        }
+        .wp-modal-head {
+            padding: 14px 18px;
+            background: #f6f7f7;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .wp-modal-head h3 { color: var(--brand-dark); font-size: 1.05rem; }
+        .wp-modal-close {
+            background: #eee; border: none; width: 32px; height: 32px;
+            border-radius: 50%; cursor: pointer; font-weight: 800; font-size: 1rem;
+        }
+        .wp-modal-body {
+            padding: 16px 18px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .wp-modal-foot {
+            padding: 12px 18px;
+            background: #f6f7f7;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .media-lib-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+            gap: 10px;
+        }
+        .media-lib-card {
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+        .media-lib-thumb {
+            height: 105px;
+            background: #0f1a17;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            overflow: hidden;
+            font-size: 2rem;
+        }
+        .media-lib-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .media-lib-info { padding: 8px; font-size: 0.76rem; flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; }
+
+        /* Upload progress modal */
+        .progress-track {
+            width: 100%; height: 18px; background: #e5e7eb; border-radius: 20px; overflow: hidden; margin: 12px 0;
+        }
+        .progress-fill {
+            height: 100%; width: 0%; background: linear-gradient(90deg, var(--brand), #00a884); transition: width 0.2s;
+        }
+
+        /* Toast */
+        #wpToast {
+            position: fixed;
+            bottom: 22px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--wp-dark);
+            color: #fff;
+            border: 1.5px solid var(--gold);
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 5000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        #wpToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* Responsive Mobile Drawer Mode */
+        .mobile-panel-toggle { display: none; }
+        .mobile-sidebar-close {
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: var(--wp-dark);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.86rem;
+        }
+        .mobile-sidebar-close button {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            padding: 3px 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 700;
+        }
+        @media (max-width: 1080px) {
+            .wp-workspace { grid-template-columns: 270px 1fr 250px; }
+        }
+        @media (max-width: 860px) {
+            body { height: auto; min-height: 100vh; overflow-y: auto; }
+            #editorShell { height: auto; min-height: 100vh; }
+            .wp-workspace { display: block; overflow: visible; }
+            .sidebar-panel {
+                display: none;
+                position: fixed;
+                top: 0; bottom: 0; width: 92%; max-width: 340px;
+                z-index: 450;
+                box-shadow: 0 0 30px rgba(0,0,0,0.45);
+            }
+            #leftSidebar { right: 0; }
+            #rightSidebar { left: 0; }
+            .sidebar-panel.mobile-open { display: flex; }
+            .sidebar-panel.mobile-open .mobile-sidebar-close { display: flex; }
+            .mobile-panel-toggle { display: inline-flex; }
+            .canvas-scroll { padding: 12px 8px 60px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== LOGIN SCREEN ==================== -->
+<div id="loginScreen">
+    <div class="login-card">
+        <div class="wp-badge"><i class="fab fa-wordpress"></i> WordPress Live Website Studio</div>
+        <h1>Edit Fareed Mustafai Website</h1>
+        <p class="sub">اپنی پوری ویب سائٹ کو ورڈپریس کی طرح لائیو کلک کر کے ایڈٹ کریں — ٹیکسٹ، لنکس، تصاویر، ویڈیوز، آڈیو اور تھیم</p>
+
+        <div class="quick-fill-note" id="autoFillNote" onclick="fillDefaultAdminEmail()">
+            📧 ایڈمن ای میل خودکار بھرنے کے لیے یہاں کلک کریں (یا <span id="loginCountdown">10</span> سیکنڈ انتظار کریں)
+        </div>
+
+        <div class="login-field">
+            <label for="loginEmail">ایڈمن ای میل (Admin Email)</label>
+            <input type="email" id="loginEmail" placeholder="mfareedmustafaiii@gmail.com" dir="ltr" style="text-align:left;">
+        </div>
+        <div class="login-field">
+            <label for="loginPassword">پاس ورڈ (Password)</label>
+            <input type="password" id="loginPassword" placeholder="اپنا ایڈمن پاس ورڈ درج کریں" dir="ltr" style="text-align:left;">
+        </div>
+
+        <button class="login-btn" onclick="loginEditor()">🔓 لائیو ایڈیٹر کھولیں (Sign In)</button>
+        <div id="loginError"></div>
+    </div>
+</div>
+
+<!-- ==================== MAIN WORDPRESS EDITOR SHELL ==================== -->
+<div id="editorShell">
+    <!-- Top WordPress Toolbar -->
+    <div class="wp-topbar">
+        <div class="wp-brand-group">
+            <div class="wp-logo-pill"><i class="fab fa-wordpress"></i> Edit Fareed Mustafai Website</div>
+            <button class="tb-btn mobile-panel-toggle" onclick="toggleMobilePanel('leftSidebar')"><i class="fas fa-bars"></i> صفحات / بلاکس</button>
+            <button class="tb-btn mobile-panel-toggle" onclick="toggleMobilePanel('rightSidebar')"><i class="fas fa-sliders-h"></i> سیٹنگز</button>
+            <div class="doc-status-pill" id="activeDocBadge">لوڈ ہو رہا ہے...<span class="dirty-dot" id="dirtyDot"></span></div>
+            <div class="doc-status-pill" id="liveSyncStatusBadge" style="display:none;"></div>
+        </div>
+
+        <div class="wp-toolbar-controls">
+            <button class="tb-btn active" id="modeVisualBtn" onclick="setEditorMode('visual')"><i class="fas fa-magic"></i> بصری ایڈیٹر (Visual)</button>
+            <button class="tb-btn" id="modeCodeBtn" onclick="setEditorMode('code')"><i class="fas fa-code"></i> HTML کوڈ</button>
+            <div class="tb-sep"></div>
+            <button class="tb-btn" id="vpDesktopBtn" onclick="setViewport('desktop')" title="Desktop"><i class="fas fa-desktop"></i></button>
+            <button class="tb-btn" id="vpTabletBtn" onclick="setViewport('tablet')" title="Tablet"><i class="fas fa-tablet-alt"></i></button>
+            <button class="tb-btn" id="vpMobileBtn" onclick="setViewport('mobile')" title="Mobile"><i class="fas fa-mobile-alt"></i></button>
+            <div class="tb-sep"></div>
+            <button class="tb-btn" onclick="undoCanvas()"><i class="fas fa-undo"></i></button>
+            <button class="tb-btn" onclick="redoCanvas()"><i class="fas fa-redo"></i></button>
+            <button class="tb-btn" onclick="openRevisionsModal()"><i class="fas fa-history"></i> تاریخچہ</button>
+            <button class="tb-btn" onclick="openMediaLibraryModal()"><i class="fas fa-photo-video"></i> میڈیا لائبریری</button>
+            <a class="tb-btn" id="viewLiveBtn" href="https://fareed-mustafaiiiii-s32s.vercel.app/" target="_blank"><i class="fas fa-external-link-alt"></i> لائیو دیکھیں</a>
+            <button class="tb-btn" onclick="downloadBakedHtml()" title="Download updated index.html"><i class="fas fa-file-download"></i> HTML</button>
+            <button class="tb-btn publish-btn" id="publishLiveBtn" onclick="publishCurrentTarget()"><i class="fas fa-rocket"></i> لائیو پبلش کریں</button>
+            <button class="tb-btn danger-btn" onclick="logoutEditor()" title="Logout"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+    </div>
+
+    <div id="liveReceiverWarningBanner" style="display:none; background:#fffbeb; color:#92400e; border-bottom:2px solid #f59e0b; padding:8px 16px; font-size:0.84rem; font-weight:700; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; flex-shrink:0;">
+        <span>⚠️ اہم اطلاع: آپ کی لائیو ویب سائٹ (Vercel) پر ابھی پرانی <code>index.html</code> اپلوڈ ہے۔ مستقل صفحات (جیسے Videos / About) اور ڈیزائن کی تبدیلیاں لائیو دکھانے کے لیے نئی <code>index.html</code> ایک مرتبہ GitHub / Vercel پر اپلوڈ کر دیں — آپ کی تمام تبدیلیاں Firebase میں محفوظ ہو رہی ہیں۔</span>
+        <button onclick="document.getElementById('liveReceiverWarningBanner').style.display='none'" style="background:#f59e0b; color:#fff; border:none; border-radius:6px; padding:4px 10px; cursor:pointer; font-family:inherit; font-weight:700;">سمجھ گیا ✖</button>
+    </div>
+
+    <!-- 3-Pane Workspace -->
+    <div class="wp-workspace">
+        <!-- LEFT SIDEBAR: Pages/Posts + Gutenberg Blocks + Theme Customizer -->
+        <div class="sidebar-panel" id="leftSidebar">
+            <div class="mobile-sidebar-close">
+                <span>📂 صفحات، بلاکس اور ڈیزائن</span>
+                <button onclick="toggleMobilePanel('leftSidebar')">بند کریں ✖</button>
+            </div>
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" onclick="switchLeftTab('pages', this)">📄 صفحات</button>
+                <button class="sidebar-tab" onclick="switchLeftTab('blocks', this)">➕ بلاکس</button>
+                <button class="sidebar-tab" onclick="switchLeftTab('customizer', this)">🎨 ڈیزائن</button>
+            </div>
+
+            <!-- Left Tab 1: Pages, Static Sections, Posts, Announcements -->
+            <div class="sidebar-body" id="leftTab-pages">
+                <div class="sidebar-search-row">
+                    <input type="text" id="pagesFilterInput" placeholder="🔍 کوئی بھی صفحہ یا پوسٹ تلاش کریں..." oninput="renderNavLists()">
+                </div>
+                <div class="nav-cat-chips">
+                    <button class="nav-cat-chip active" data-cat="all" onclick="setNavCategory('all', this)">سب</button>
+                    <button class="nav-cat-chip" data-cat="static" onclick="setNavCategory('static', this)">🌐 مستقل</button>
+                    <button class="nav-cat-chip" data-cat="page" onclick="setNavCategory('page', this)">📄 ایڈمن صفحات (<span id="chipPagesTotal">0</span>)</button>
+                    <button class="nav-cat-chip" data-cat="post" onclick="setNavCategory('post', this)">📝 پوسٹس (<span id="chipPostsTotal">0</span>)</button>
+                </div>
+                <div class="action-mini-grid">
+                    <button class="btn-wp-primary" onclick="openNewPageModal('page')"><i class="fas fa-plus"></i> نیا صفحہ</button>
+                    <button class="btn-wp-secondary" onclick="openNewPageModal('post')"><i class="fas fa-pen"></i> نئی پوسٹ</button>
+                    <button class="btn-wp-outline" onclick="openAnnouncementsModal()"><i class="fas fa-bullhorn"></i> اعلانات</button>
+                    <button class="btn-wp-outline" onclick="refreshAllFromSource()"><i class="fas fa-sync-alt"></i> ریفریش</button>
+                </div>
+                <div id="pagesHydrationStatus" style="display:none; font-size:0.74rem; font-weight:700; padding:6px 10px; border-radius:8px; margin-bottom:8px; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0;"></div>
+
+                <div id="groupStaticWrap">
+                    <div class="group-label"><span>🌐 ویب سائٹ کے مستقل صفحات (Static)</span><span id="staticCount">0</span></div>
+                    <div id="staticSectionsList"></div>
+                </div>
+
+                <div id="groupPagesWrap">
+                    <div class="group-label"><span>📄 ایڈمن صفحات (Firebase Pages)</span><span id="fbPagesCount">0</span></div>
+                    <div id="firebasePagesList"></div>
+                </div>
+
+                <div id="groupPostsWrap">
+                    <div class="group-label"><span>📝 پوسٹس (Blog Posts)</span><span id="fbPostsCount">0</span></div>
+                    <div id="firebasePostsList"></div>
+                </div>
+            </div>
+
+            <!-- Left Tab 2: WordPress Gutenberg Block Inserter -->
+            <div class="sidebar-body" id="leftTab-blocks" style="display:none;">
+                <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:10px;">
+                    کسی بھی بلاک پر کلک کریں — وہ سیدھا آپ کے صفحے پر شامل ہو جائے گا (یا منتخب بلاک کے نیچے لگے گا):
+                </p>
+                <div class="blocks-grid">
+                    <div class="block-tile" onclick="insertBlock('heading')"><span class="bt-icon">🔤</span><span>سرخی (Heading)</span></div>
+                    <div class="block-tile" onclick="insertBlock('paragraph')"><span class="bt-icon">📝</span><span>پیراگراف</span></div>
+                    <div class="block-tile" onclick="insertBlock('linkbtn')"><span class="bt-icon">🔗</span><span>بٹن / لنک</span></div>
+                    <div class="block-tile" onclick="triggerMediaPicker('image')"><span class="bt-icon">🖼️</span><span>تصویر اپلوڈ</span></div>
+                    <div class="block-tile" onclick="insertBlock('imageUrl')"><span class="bt-icon">🌐</span><span>تصویر لنک (URL)</span></div>
+                    <div class="block-tile" onclick="triggerMediaPicker('video')"><span class="bt-icon">🎬</span><span>ویڈیو اپلوڈ (بڑی)</span></div>
+                    <div class="block-tile" onclick="insertBlock('youtube')"><span class="bt-icon">📺</span><span>یوٹیوب ویڈیو</span></div>
+                    <div class="block-tile" onclick="triggerMediaPicker('audio')"><span class="bt-icon">🎙️</span><span>آڈیو اپلوڈ</span></div>
+                    <div class="block-tile" onclick="insertBlock('callout')"><span class="bt-icon">🎴</span><span>اہم نوٹس باکس</span></div>
+                    <div class="block-tile" onclick="insertBlock('columns')"><span class="bt-icon">📊</span><span>2 کالم لے آؤٹ</span></div>
+                    <div class="block-tile" onclick="insertBlock('list')"><span class="bt-icon">📋</span><span>نکات / فہرست</span></div>
+                    <div class="block-tile" onclick="insertBlock('divider')"><span class="bt-icon">➖</span><span>لائن / اسپیس</span></div>
+                    <div class="block-tile" onclick="insertBlock('embed')"><span class="bt-icon">🧩</span><span>ویڈیو / لنک کارڈ</span></div>
+                    <div class="block-tile" onclick="openMediaLibraryModal()"><span class="bt-icon">🗂️</span><span>میڈیا لائبریری</span></div>
+                </div>
+            </div>
+
+            <!-- Left Tab 3: WordPress Site Customizer (Header, Colors, Menu, Footer, Custom CSS) -->
+            <div class="sidebar-body" id="leftTab-customizer" style="display:none;">
+                <div class="inspector-group">
+                    <h4>🏛️ ہیڈر اور ٹائٹل (Header &amp; Identity)</h4>
+                    <div class="form-field">
+                        <label>ویب سائٹ کا مرکزی نام (Site Title)</label>
+                        <input type="text" id="custSiteTitle" placeholder="M.FAREED MUSTAFAI">
+                    </div>
+                    <div class="form-field">
+                        <label>ذیلی نام (Subtitle)</label>
+                        <input type="text" id="custSiteSub" placeholder="M.IRFAN MUSTAFAI">
+                    </div>
+                    <div class="form-field">
+                        <label>بسم اللہ / اوپر کا نشان</label>
+                        <input type="text" id="custBismillah" placeholder="﷽">
+                    </div>
+                    <div class="form-field">
+                        <label>درود شریف پٹی ٹیکسٹ</label>
+                        <input type="text" id="custDurood" placeholder="صَلَّى اللّٰهُ عَلَى مُحَمَّدٍ...">
+                    </div>
+                    <div class="form-field">
+                        <label>اعلان پٹی (Marquee Override - خالی چھوڑیں تو Firebase اعلانات چلیں گے)</label>
+                        <input type="text" id="custMarquee" placeholder="اپنی مرضی کی مستقل اعلان پٹی لکھیں...">
+                    </div>
+                    <div class="form-field">
+                        <label>فوٹر کا پیغام (Footer Text)</label>
+                        <input type="text" id="custFooterText" placeholder="M.FAREED MUSTAFAI | تمام حقوق...">
+                    </div>
+                </div>
+
+                <div class="inspector-group">
+                    <h4>🎨 ویب سائٹ کے رنگ (Theme Colors)</h4>
+                    <div class="form-field">
+                        <label>بنیادی رنگ (Primary Color)</label>
+                        <div class="color-row">
+                            <input type="color" id="custPrimaryColor" value="#006b54">
+                            <input type="text" id="custPrimaryHex" value="#006b54" dir="ltr">
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label>سنہری رنگ (Gold Accent)</label>
+                        <div class="color-row">
+                            <input type="color" id="custGoldColor" value="#d4af37">
+                            <input type="text" id="custGoldHex" value="#d4af37" dir="ltr">
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label>بیک گراؤنڈ رنگ (Page Background)</label>
+                        <div class="color-row">
+                            <input type="color" id="custBgColor" value="#f0f5f2">
+                            <input type="text" id="custBgHex" value="#f0f5f2" dir="ltr">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inspector-group">
+                    <h4>🧭 نیویگیشن مینو لنکس (WP Menus)</h4>
+                    <p style="font-size:0.74rem; color:var(--text-muted); margin-bottom:8px;">اوپر نیویگیشن بار میں نئے لنکس شامل کریں:</p>
+                    <div id="customMenuLinksList" style="margin-bottom:8px;"></div>
+                    <div class="form-field">
+                        <label>نیا مینو بٹن نام</label>
+                        <input type="text" id="newMenuLabel" placeholder="مثلاً: 📚 نئی کتاب">
+                    </div>
+                    <div class="form-field">
+                        <label>لنک (#page یا https://...)</label>
+                        <input type="text" id="newMenuHref" placeholder="#books یا https://..." dir="ltr">
+                    </div>
+                    <button class="btn-wp-secondary" style="width:100%;" onclick="addCustomMenuLink()">➕ مینو لنک شامل کریں</button>
+                </div>
+
+                <div class="inspector-group">
+                    <h4>💻 اضافی CSS (WordPress Additional CSS)</h4>
+                    <div class="form-field">
+                        <textarea id="custExtraCss" rows="4" dir="ltr" placeholder=".post h2 { color: #006b54; }"></textarea>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-wp-primary" style="flex:1; padding:10px;" onclick="publishCustomizer()">🚀 ڈیزائن لائیو سیو کریں</button>
+                    <button class="btn-wp-outline" onclick="resetCustomizerToDefault()">🔄 ری سیٹ</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER CANVAS: Visual Live Editing Area -->
+        <div class="canvas-stage">
+            <!-- Rich Formatting Ribbon -->
+            <div class="inline-format-ribbon">
+                <button class="fmt-btn" onclick="execFmt('bold')" title="Bold"><b>B</b></button>
+                <button class="fmt-btn" onclick="execFmt('italic')" title="Italic"><i>I</i></button>
+                <button class="fmt-btn" onclick="execFmt('underline')" title="Underline"><u>U</u></button>
+                <button class="fmt-btn" onclick="execFmt('strikeThrough')" title="Strike"><s>S</s></button>
+                <select class="fmt-select" onchange="applyBlockTag(this.value); this.value='';">
+                    <option value="">ہیڈنگ / پیراگراف</option>
+                    <option value="H1">H1 بڑی سرخی</option>
+                    <option value="H2">H2 درمیانی سرخی</option>
+                    <option value="H3">H3 ذیلی سرخی</option>
+                    <option value="P">P عام پیراگراف</option>
+                    <option value="BLOCKQUOTE">اقتباس (Quote)</option>
+                </select>
+                <select class="fmt-select" onchange="execFmt('fontSize', this.value); this.value='';">
+                    <option value="">فونٹ سائز</option>
+                    <option value="2">چھوٹا</option>
+                    <option value="3">نارمل</option>
+                    <option value="4">درمیانہ</option>
+                    <option value="5">بڑا</option>
+                    <option value="6">بہت بڑا</option>
+                    <option value="7">ہیرو سائز</option>
+                </select>
+                <button class="fmt-btn" onclick="execFmt('justifyRight')" title="دائیں"><i class="fas fa-align-right"></i></button>
+                <button class="fmt-btn" onclick="execFmt('justifyCenter')" title="درمیان"><i class="fas fa-align-center"></i></button>
+                <button class="fmt-btn" onclick="execFmt('justifyLeft')" title="بائیں"><i class="fas fa-align-left"></i></button>
+                <button class="fmt-btn" onclick="execFmt('insertUnorderedList')" title="بلٹ لسٹ"><i class="fas fa-list-ul"></i></button>
+                <button class="fmt-btn" onclick="execFmt('insertOrderedList')" title="نمبر لسٹ"><i class="fas fa-list-ol"></i></button>
+                <button class="fmt-btn" style="background:var(--brand-soft); color:var(--brand-dark);" onclick="openLinkModal()"><i class="fas fa-link"></i> لنک لگائیں</button>
+                <button class="fmt-btn" onclick="triggerMediaPicker('image')"><i class="fas fa-image"></i> تصویر</button>
+                <button class="fmt-btn" onclick="triggerMediaPicker('video')"><i class="fas fa-video"></i> ویڈیو</button>
+                <button class="fmt-btn" onclick="insertBlock('youtube')"><i class="fab fa-youtube" style="color:red;"></i> یوٹیوب</button>
+                <button class="fmt-btn" onclick="triggerMediaPicker('audio')"><i class="fas fa-microphone"></i> آڈیو</button>
+                <label style="font-size:0.75rem; display:inline-flex; align-items:center; gap:3px; margin-right:4px;">
+                    ٹیکسٹ رنگ: <input type="color" value="#006b54" onchange="execFmt('foreColor', this.value)" style="width:26px; height:24px; border:none; cursor:pointer;">
+                </label>
+                <label style="font-size:0.75rem; display:inline-flex; align-items:center; gap:3px;">
+                    ہائی لائٹ: <input type="color" value="#fff59d" onchange="execFmt('hiliteColor', this.value)" style="width:26px; height:24px; border:none; cursor:pointer;">
+                </label>
+            </div>
+
+            <!-- Scrollable Website Preview / Visual Editor -->
+            <div class="canvas-scroll">
+                <div class="canvas-viewport" id="canvasViewport">
+                    <div class="canvas-page-banner">
+                        <div style="flex:1; min-width:220px;">
+                            <div style="font-size:0.74rem; opacity:0.85; margin-bottom:4px;">صفحہ کا عنوان (یہاں کلک کر کے عنوان بدلیں):</div>
+                            <input type="text" id="docTitleInput" class="canvas-title-input" placeholder="صفحہ / پوسٹ کا عنوان..." oninput="markDirty()">
+                        </div>
+                    </div>
+
+                    <div id="visualCanvas" contenteditable="true" spellcheck="false">
+                        <p style="text-align:center; color:#666; padding:50px;">⏳ ویب سائٹ لوڈ ہو رہی ہے...</p>
+                    </div>
+
+                    <div id="codeEditorWrapper">
+                        <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:8px;">
+                            براہِ راست HTML ایڈٹ کریں — بصری ایڈیٹر میں واپس جاتے ہی تبدیلیاں نظر آئیں گی:
+                        </p>
+                        <textarea id="htmlCodeTextarea" oninput="markDirty()"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT INSPECTOR: Selected Block & Page Controls -->
+        <div class="sidebar-panel" id="rightSidebar">
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" onclick="switchRightTab('element', this)">🧩 منتخب حصہ</button>
+                <button class="sidebar-tab" onclick="switchRightTab('page', this)">⚙️ صفحہ سیٹنگز</button>
+            </div>
+
+            <!-- Selected Block Inspector -->
+            <div class="sidebar-body" id="rightTab-element">
+                <div class="inspector-group">
+                    <h4>🎯 منتخب بلاک کی سیٹنگز</h4>
+                    <p id="selectedBlockLabel" style="font-size:0.8rem; color:var(--wp-blue); font-weight:700; margin-bottom:8px;">
+                        بصری کینوس میں کسی بھی ٹیکسٹ، لنک، تصویر یا ویڈیو پر کلک کریں۔
+                    </p>
+                    <div id="elementControls" style="display:none;">
+                        <div class="form-field" id="elLinkWrap">
+                            <label>🔗 لنک URL (Href)</label>
+                            <input type="text" id="elHrefInput" dir="ltr" placeholder="https://... یا #about">
+                            <div style="margin-top:5px; display:flex; align-items:center; gap:6px; font-size:0.78rem;">
+                                <input type="checkbox" id="elNewTabCheck"> نئے ٹیب میں کھولیں (_blank)
+                            </div>
+                        </div>
+                        <div class="form-field" id="elImgSrcWrap" style="display:none;">
+                            <label>🖼️ تصویر / میڈیا لنک (Src)</label>
+                            <input type="text" id="elSrcInput" dir="ltr">
+                            <div style="display:flex; gap:6px; margin-top:6px;">
+                                <button class="btn-wp-outline" style="flex:1; font-size:0.74rem;" onclick="replaceSelectedImage()">📤 نئی تصویر اپلوڈ</button>
+                            </div>
+                        </div>
+                        <div class="form-field" id="elWidthWrap" style="display:none;">
+                            <label>📐 چوڑائی (Width)</label>
+                            <select id="elWidthSelect" onchange="applySelectedStyle()">
+                                <option value="">خودکار (Auto)</option>
+                                <option value="25%">25%</option>
+                                <option value="50%">50%</option>
+                                <option value="75%">75%</option>
+                                <option value="100%">100% پورا</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>🎨 ٹیکسٹ رنگ (Text Color)</label>
+                            <div class="color-row">
+                                <input type="color" id="elColorPicker" value="#1d2327" oninput="applySelectedStyle()">
+                                <button class="btn-wp-outline" style="font-size:0.72rem;" onclick="clearElProp('color')">صاف</button>
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <label>🖌️ بیک گراؤنڈ رنگ (Background)</label>
+                            <div class="color-row">
+                                <input type="color" id="elBgPicker" value="#ffffff" oninput="applySelectedStyle()">
+                                <button class="btn-wp-outline" style="font-size:0.72rem;" onclick="clearElProp('backgroundColor')">صاف</button>
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <label>📏 فونٹ سائز (px)</label>
+                            <input type="number" id="elFontSizeInput" min="10" max="72" placeholder="مثلاً 18" oninput="applySelectedStyle()">
+                        </div>
+                        <div class="form-field">
+                            <label>📦 اندرونی اسپیس / Padding (px)</label>
+                            <input type="number" id="elPaddingInput" min="0" max="80" placeholder="مثلاً 14" oninput="applySelectedStyle()">
+                        </div>
+                        <div class="form-field">
+                            <label>🔲 گول کنارے / Radius (px)</label>
+                            <input type="number" id="elRadiusInput" min="0" max="50" placeholder="مثلاً 12" oninput="applySelectedStyle()">
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:10px;">
+                            <button class="btn-wp-primary" onclick="applySelectedAttributes()"><i class="fas fa-check"></i> لاگو کریں</button>
+                            <button class="btn-wp-outline" onclick="duplicateSelectedBlock()"><i class="fas fa-copy"></i> ڈپلیکیٹ</button>
+                            <button class="btn-wp-outline" onclick="moveSelectedBlock(-1)">⬆️ اوپر</button>
+                            <button class="btn-wp-outline" onclick="moveSelectedBlock(1)">⬇️ نیچے</button>
+                            <button class="btn-wp-outline" style="grid-column:1/-1; color:var(--danger); border-color:var(--danger);" onclick="deleteSelectedBlock()"><i class="fas fa-trash"></i> منتخب حصہ حذف کریں</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inspector-group">
+                    <h4>⚡ فوری مددگار</h4>
+                    <p style="font-size:0.76rem; color:var(--text-muted); line-height:1.6;">
+                        • کسی بھی لفظ یا جملے کو بدلنے کے لیے سیدھا صفحے پر کلک کر کے لکھیں۔<br>
+                        • کہیں بھی لنک، تصویر یا بڑی ویڈیو لگانے کے لیے کرسر وہاں رکھ کر اوپر یا بائیں جانب بٹن دبائیں۔<br>
+                        • کام مکمل ہونے پر اوپر سبز بٹن <strong>"لائیو پبلش کریں"</strong> دبائیں۔
+                    </p>
+                </div>
+            </div>
+
+            <!-- Page Settings Tab -->
+            <div class="sidebar-body" id="rightTab-page" style="display:none;">
+                <div class="inspector-group">
+                    <h4>📄 موجودہ صفحہ کی معلومات</h4>
+                    <div class="form-field">
+                        <label>نوعیت (Type)</label>
+                        <input type="text" id="metaTypeDisplay" readonly style="background:#eee;">
+                    </div>
+                    <div class="form-field">
+                        <label>ID / URL Slug</label>
+                        <input type="text" id="metaIdDisplay" dir="ltr" readonly style="background:#eee;">
+                    </div>
+                    <div class="form-field">
+                        <label>لائیو لنک (Direct Link)</label>
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" id="metaDirectUrl" dir="ltr" readonly style="background:#eee; font-size:0.75rem;">
+                            <button class="btn-wp-outline" onclick="copyDirectUrl()" title="کاپی کریں"><i class="fas fa-copy"></i></button>
+                        </div>
+                    </div>
+                    <button class="btn-wp-primary" style="width:100%; margin-bottom:8px;" onclick="publishCurrentTarget()"><i class="fas fa-rocket"></i> لائیو پبلش کریں</button>
+                    <button class="btn-wp-outline" id="revertStaticBtn" style="width:100%; margin-bottom:8px; display:none; color:#b45309; border-color:#f59e0b;" onclick="revertStaticSectionToOriginal()">🔄 اصل HTML واپس بحال کریں</button>
+                    <button class="btn-wp-outline" id="deleteDocBtn" style="width:100%; display:none; color:var(--danger); border-color:var(--danger);" onclick="deleteCurrentDocument()">🗑️ یہ صفحہ / پوسٹ حذف کریں</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Elementor-style Block Toolbar -->
+<div id="floatingBlockBar">
+    <span class="fb-prompt-label" id="fbPosPromptLabel">📍 کہاں شامل کرنا ہے؟</span>
+    <button class="fb-pos-btn" id="fbAboveBtn" onmousedown="event.preventDefault()" onclick="openInsertSlotRelative('above')" title="منتخب تصویر / ویڈیو / حصے کے اوپر نیا مواد ایڈ کریں">⬆️ اس کے اوپر ایڈ کریں</button>
+    <button class="fb-pos-btn" id="fbBelowBtn" onmousedown="event.preventDefault()" onclick="openInsertSlotRelative('below')" title="منتخب تصویر / ویڈیو / حصے کے نیچے نیا مواد ایڈ کریں">⬇️ اس کے نیچے ایڈ کریں</button>
+    <span class="fb-sep" id="fbBlockSep"></span>
+    <span id="fbBlockActions" style="display:inline-flex; align-items:center; gap:3px;">
+        <button class="fb-quick-btn" onmousedown="event.preventDefault()" onclick="quickActionWriteTextHere()" title="موجودہ جگہ پر ٹیکسٹ ایڈٹ کریں">✏️ ٹیکسٹ</button>
+        <button onmousedown="event.preventDefault()" onclick="moveSelectedBlock(-1)" title="اوپر لے جائیں">⬆️</button>
+        <button onmousedown="event.preventDefault()" onclick="moveSelectedBlock(1)" title="نیچے لے جائیں">⬇️</button>
+        <button onmousedown="event.preventDefault()" onclick="duplicateSelectedBlock()" title="کاپی بنائیں">📋</button>
+        <button class="del" onmousedown="event.preventDefault()" onclick="deleteSelectedBlock()" title="حذف کریں">🗑️</button>
+    </span>
+</div>
+
+<!-- Hidden File Pickers -->
+<input type="file" id="hiddenImagePicker" accept="image/*" style="display:none;" onchange="handleImageFileSelected(event)">
+<input type="file" id="hiddenReplaceImgPicker" accept="image/*" style="display:none;" onchange="handleReplaceImageSelected(event)">
+<input type="file" id="hiddenVideoPicker" accept="video/*,.mp4,.m4v,.mov,.mkv,.webm,.avi,.wmv,.flv,.3gp,.3g2,.ogv,.mpeg,.mpg,.ts,.mts,.m2ts,.vob" style="display:none;" onchange="handleChunkedMediaSelected(event, 'video')">
+<input type="file" id="hiddenAudioPicker" accept="audio/*,.mp3,.aac,.m4a,.wav,.ogg,.oga,.opus,.spx,.flac,.wma,.amr,.3gp,.aiff,.aif,.alac,.caf,.weba,.webm,.mid,.midi,.mp2,.ac3" style="display:none;" onchange="handleChunkedMediaSelected(event, 'audio')">
+
+<!-- ==================== MODALS ==================== -->
+<!-- Link Inserter / Editor Modal -->
+<div class="wp-modal-backdrop" id="linkModal">
+    <div class="wp-modal-box" style="max-width:480px;">
+        <div class="wp-modal-head">
+            <h3>🔗 لنک لگائیں یا تبدیل کریں</h3>
+            <button class="wp-modal-close" onclick="closeModal('linkModal')">✖</button>
+        </div>
+        <div class="wp-modal-body">
+            <div class="form-field">
+                <label>لنک کا ٹیکسٹ (Display Text)</label>
+                <input type="text" id="linkTextInput" placeholder="مثلاً: مزید تفصیلات یہاں دیکھیں">
+            </div>
+            <div class="form-field">
+                <label>لنک کا پتا (URL یا #page-id)</label>
+                <input type="text" id="linkUrlInput" dir="ltr" placeholder="https://example.com یا YouTube URL" oninput="onLinkUrlTyped()">
+            </div>
+            <div class="form-field" style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+                <label style="display:flex; align-items:center; gap:5px; margin:0; cursor:pointer;">
+                    <input type="checkbox" id="linkAsButtonCheck"> بٹن کی شکل میں دکھائیں
+                </label>
+                <label style="display:flex; align-items:center; gap:5px; margin:0; cursor:pointer;">
+                    <input type="checkbox" id="linkNewTabCheck" checked> نئے ٹیب میں کھولیں
+                </label>
+                <label style="display:flex; align-items:center; gap:5px; margin:0; cursor:pointer; color:#006b54; font-weight:700;">
+                    <input type="checkbox" id="linkAsYouTubeCheck"> 📺 یوٹیوب لنک پر ویڈیو پلیئر لگائیں
+                </label>
+            </div>
+        </div>
+        <div class="wp-modal-foot">
+            <button class="btn-wp-outline" onclick="closeModal('linkModal')">منسوخ</button>
+            <button class="btn-wp-primary" onclick="confirmInsertLink()">✅ لنک شامل کریں</button>
+        </div>
+    </div>
+</div>
+
+<!-- New Page / Post Modal -->
+<div class="wp-modal-backdrop" id="newPageModal">
+    <div class="wp-modal-box" style="max-width:480px;">
+        <div class="wp-modal-head">
+            <h3 id="newPageModalTitle">➕ نیا صفحہ بنائیں</h3>
+            <button class="wp-modal-close" onclick="closeModal('newPageModal')">✖</button>
+        </div>
+        <div class="wp-modal-body">
+            <div class="form-field">
+                <label>عنوان (Title)</label>
+                <input type="text" id="newDocTitle" placeholder="مثلاً: اسلامی بیان یا نئی معلومات" oninput="autoFillSlug()">
+            </div>
+            <div class="form-field" id="newDocSlugWrap">
+                <label>URL Slug (انگریزی حروف / ہائفن)</label>
+                <input type="text" id="newDocSlug" dir="ltr" placeholder="islamic-bayan">
+            </div>
+        </div>
+        <div class="wp-modal-foot">
+            <button class="btn-wp-outline" onclick="closeModal('newPageModal')">منسوخ</button>
+            <button class="btn-wp-primary" onclick="confirmCreateNewDoc()">🚀 بنائیں اور ایڈٹ کریں</button>
+        </div>
+    </div>
+</div>
+
+<!-- WordPress Media Library Modal -->
+<div class="wp-modal-backdrop" id="mediaLibraryModal">
+    <div class="wp-modal-box" style="max-width:860px;">
+        <div class="wp-modal-head">
+            <h3>🗂️ WordPress میڈیا لائبریری (اپلوڈ شدہ ویڈیوز، آڈیوز، تصاویر)</h3>
+            <button class="wp-modal-close" onclick="closeModal('mediaLibraryModal')">✖</button>
+        </div>
+        <div class="wp-modal-body">
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+                <button class="btn-wp-primary" onclick="closeModal('mediaLibraryModal'); triggerMediaPicker('image');"><i class="fas fa-image"></i> نئی تصویر</button>
+                <button class="btn-wp-secondary" onclick="closeModal('mediaLibraryModal'); triggerMediaPicker('video');"><i class="fas fa-video"></i> نئی ویڈیو</button>
+                <button class="btn-wp-outline" onclick="closeModal('mediaLibraryModal'); triggerMediaPicker('audio');"><i class="fas fa-microphone"></i> نئی آڈیو</button>
+                <input type="text" id="mediaLibSearch" placeholder="🔍 میڈیا تلاش کریں..." oninput="renderMediaLibraryGrid()" style="flex:1; min-width:180px; padding:7px 10px; border:1.5px solid var(--border); border-radius:8px;">
+            </div>
+            <div id="mediaLibGrid" class="media-lib-grid">
+                <p style="grid-column:1/-1; text-align:center; padding:30px; color:#666;">⏳ میڈیا لوڈ ہو رہا ہے...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- WordPress Revisions Modal -->
+<div class="wp-modal-backdrop" id="revisionsModal">
+    <div class="wp-modal-box" style="max-width:600px;">
+        <div class="wp-modal-head">
+            <h3>📜 پرانے ورژنز / تاریخچہ (WordPress Revisions)</h3>
+            <button class="wp-modal-close" onclick="closeModal('revisionsModal')">✖</button>
+        </div>
+        <div class="wp-modal-body" id="revisionsListBody">
+            <p style="text-align:center; padding:20px;">⏳ لوڈ ہو رہا ہے...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Announcements Manager Modal -->
+<div class="wp-modal-backdrop" id="announcementsModal">
+    <div class="wp-modal-box" style="max-width:600px;">
+        <div class="wp-modal-head">
+            <h3>📢 لائیو اعلانات (Announcement Bar)</h3>
+            <button class="wp-modal-close" onclick="closeModal('announcementsModal')">✖</button>
+        </div>
+        <div class="wp-modal-body">
+            <div style="display:flex; gap:8px; margin-bottom:14px;">
+                <input type="text" id="newAnnInput" placeholder="نیا لائیو اعلان لکھیں..." style="flex:1; padding:9px 12px; border:1.5px solid var(--border); border-radius:8px;">
+                <button class="btn-wp-primary" onclick="addLiveAnnouncement()">➕ شامل کریں</button>
+            </div>
+            <div id="announcementsListBody"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Progress Modal -->
+<div class="wp-modal-backdrop" id="uploadProgressModal">
+    <div class="wp-modal-box" style="max-width:460px;">
+        <div class="wp-modal-head">
+            <h3 id="upTitle">⏳ میڈیا اپلوڈ ہو رہا ہے...</h3>
+        </div>
+        <div class="wp-modal-body" style="text-align:center;">
+            <p id="upFileInfo" style="font-size:0.86rem; font-weight:700; color:var(--brand-dark);"></p>
+            <div class="progress-track"><div class="progress-fill" id="upProgressFill"></div></div>
+            <strong id="upPctText" style="font-size:1.3rem; color:var(--brand);">0%</strong>
+            <p id="upStatusText" style="font-size:0.82rem; color:var(--text-muted); margin-top:6px;">تیاری کی جا رہی ہے...</p>
+        </div>
+    </div>
+</div>
+
+<div id="wpToast"></div>
+
+<script>
+    // ========== FIREBASE INITIALIZATION (EXACT SAME PROJECT AS index.html & admin.html) ==========
+    const firebaseConfig = {
+        apiKey: "AIzaSyBtwg9tjN8Jxp7orDpLWruTAmKPkIClG0U",
+        authDomain: "fareed-mustafai-vercel-website.firebaseapp.com",
+        databaseURL: "https://fareed-mustafai-vercel-website-default-rtdb.firebaseio.com",
+        projectId: "fareed-mustafai-vercel-website",
+        storageBucket: "fareed-mustafai-vercel-website.firebasestorage.app",
+        messagingSenderId: "939035629284",
+        appId: "1:939035629284:web:12db8268e193143767fef1"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const auth = firebase.auth();
+    const DEFAULT_ADMIN_EMAIL = "mfareedmustafaiii@gmail.com";
+    const LIVE_SITE_URL = "https://fareed-mustafaiiiii-s32s.vercel.app/";
+
+    // ========== EDITOR STATE ==========
+    let rawSiteHtml = "";
+    let staticSectionsMap = {};   // { id: { id, title, originalHtml } }
+    let liveSectionOverrides = {}; // loaded from site_live_edits/sections
+    let firebasePagesMap = {};     // loaded from pages
+    let firebasePostsMap = {};     // loaded from posts
+    let customizerData = {};       // loaded from site_live_edits/customize
+    let mediaLibraryItems = [];    // combined media_chunks + inline images/YT
+    let activeTarget = null;       // { kind: 'static'|'page'|'post', id: '...' }
+    let editorMode = 'visual';     // 'visual' | 'code'
+    let selectedEl = null;
+    let savedSelectionRange = null;
+    let lastCanvasClickPoint = null;
+    let isDirty = false;
+    let newDocKind = 'page';
+    let undoStack = [];
+    let redoStack = [];
+    let snapshotTimer = null;
+    let liveSiteHasReceiver = null;
+    let navCategoryFilter = 'all';
+    let postsLiveBound = false;
+    let titleHydrationRunId = 0;
+
+    // ========== AUTH & LOGIN COUNTDOWN ==========
+    let loginSeconds = 10;
+    let loginCountdownTimer = null;
+
+    function fillDefaultAdminEmail() {
+        const em = document.getElementById('loginEmail');
+        if (em && !em.value.trim()) {
+            em.value = DEFAULT_ADMIN_EMAIL;
+            document.getElementById('loginPassword').focus();
+        }
+        if (loginCountdownTimer) clearInterval(loginCountdownTimer);
+        const note = document.getElementById('autoFillNote');
+        if (note) note.innerHTML = '✅ ایڈمن ای میل خودکار بھر دی گئی ہے! اب پاس ورڈ درج کریں۔';
+    }
+
+    function startLoginTimer() {
+        if (loginCountdownTimer) clearInterval(loginCountdownTimer);
+        loginSeconds = 10;
+        loginCountdownTimer = setInterval(() => {
+            loginSeconds--;
+            const cd = document.getElementById('loginCountdown');
+            if (cd) cd.textContent = loginSeconds;
+            if (loginSeconds <= 0) {
+                fillDefaultAdminEmail();
+            }
+        }, 1000);
+    }
+
+    document.getElementById('loginPassword').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') loginEditor();
+    });
+
+    function loginEditor() {
+        const email = (document.getElementById('loginEmail').value || '').trim() || DEFAULT_ADMIN_EMAIL;
+        const pass = (document.getElementById('loginPassword').value || '').trim();
+        const errEl = document.getElementById('loginError');
+        if (!pass) { errEl.textContent = '❌ براہِ کرم پاس ورڈ درج کریں۔'; return; }
+        errEl.textContent = '⏳ لاگ ان ہو رہا ہے...';
+        auth.signInWithEmailAndPassword(email, pass)
+            .then(() => { errEl.textContent = ''; })
+            .catch((err) => { errEl.textContent = '❌ ' + err.message; });
+    }
+
+    function logoutEditor() {
+        if (isDirty && !confirm('کچھ غیر محفوظ تبدیلیاں باقی ہیں۔ کیا آپ واقعی لاگ آؤٹ کرنا چاہتے ہیں؟')) return;
+        auth.signOut();
+    }
+
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            if (loginCountdownTimer) clearInterval(loginCountdownTimer);
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('editorShell').style.display = 'flex';
+            bootstrapEditorData();
+        } else {
+            document.getElementById('editorShell').style.display = 'none';
+            document.getElementById('loginScreen').style.display = 'flex';
+            startLoginTimer();
+        }
+    });
+
+    // ========== TOAST & MODALS ==========
+    let toastTimer = null;
+    function showToast(msg) {
+        const t = document.getElementById('wpToast');
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+    }
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    function toggleMobilePanel(id) {
+        ['leftSidebar', 'rightSidebar'].forEach(p => {
+            const el = document.getElementById(p);
+            if (p === id) el.classList.toggle('mobile-open');
+            else el.classList.remove('mobile-open');
+        });
+    }
+
+    function switchLeftTab(tab, btn) {
+        ['pages', 'blocks', 'customizer'].forEach(t => {
+            document.getElementById('leftTab-' + t).style.display = (t === tab) ? 'block' : 'none';
+        });
+        document.querySelectorAll('#leftSidebar .sidebar-tab').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+    }
+
+    function switchRightTab(tab, btn) {
+        ['element', 'page'].forEach(t => {
+            document.getElementById('rightTab-' + t).style.display = (t === tab) ? 'block' : 'none';
+        });
+        document.querySelectorAll('#rightSidebar .sidebar-tab').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+    }
+
+    function setViewport(vp) {
+        const el = document.getElementById('canvasViewport');
+        el.classList.remove('tablet', 'mobile');
+        if (vp === 'tablet' || vp === 'mobile') el.classList.add(vp);
+    }
+
+    // ========== BOOTSTRAP: FETCH REAL index.html + ALL FIREBASE DATA ==========
+    async function fetchRealWebsiteHtml() {
+        const candidates = ['./index.html?t=' + Date.now(), LIVE_SITE_URL + '?t=' + Date.now()];
+        for (const url of candidates) {
+            try {
+                const res = await fetch(url);
+                if (res.ok) {
+                    const txt = await res.text();
+                    if (txt && txt.includes('site-header') && txt.includes('class="post')) {
+                        return txt;
+                    }
+                }
+            } catch (e) {}
+        }
+        return '';
+    }
+
+    function parseStaticSectionsFromHtml(html) {
+        staticSectionsMap = {};
+        if (!html) return;
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        doc.querySelectorAll('.post[id]:not(.dynamic-page)').forEach(el => {
+            const id = el.id;
+            if (!id || id === 'posts') return; // #posts is dynamic container
+            const h = el.querySelector('h1, h2, h3');
+            const title = h ? h.textContent.trim() : id;
+            staticSectionsMap[id] = { id, title, originalHtml: el.innerHTML };
+        });
+
+        // Also seed default customizer values from real HTML if not overridden yet
+        if (!customizerData.siteTitle) {
+            const h1 = doc.querySelector('.site-header h1');
+            if (h1) document.getElementById('custSiteTitle').placeholder = h1.textContent.trim();
+        }
+        if (!customizerData.siteSub) {
+            const sub = doc.querySelector('.site-header .header-sub');
+            if (sub) document.getElementById('custSiteSub').placeholder = sub.textContent.trim();
+        }
+    }
+
+    function setNavCategory(cat, btn) {
+        navCategoryFilter = cat || 'all';
+        document.querySelectorAll('.nav-cat-chip').forEach(b => b.classList.toggle('active', b.getAttribute('data-cat') === navCategoryFilter));
+        renderNavLists();
+    }
+
+    async function fetchJsonWithTimeout(url, ms) {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), ms || 15000);
+        try {
+            const r = await fetch(url, { signal: ctrl.signal });
+            if (!r.ok) return null;
+            return await r.json();
+        } catch (e) {
+            return null;
+        } finally {
+            clearTimeout(tid);
+        }
+    }
+
+    async function bootstrapEditorData() {
+        showToast('⏳ ویب سائٹ، ایڈمن صفحات اور پوسٹس لوڈ ہو رہی ہیں...');
+        try {
+            // Fast parallel load: skip 7.7MB masail-video body & heavy revisions tree at startup!
+            const [htmlText, pagesShallow, postsRest, sectionsRes, custRes] = await Promise.all([
+                fetchRealWebsiteHtml(),
+                fetchJsonWithTimeout(firebaseConfig.databaseURL + '/pages.json?shallow=true', 15000),
+                fetchJsonWithTimeout(firebaseConfig.databaseURL + '/posts.json', 15000),
+                fetchJsonWithTimeout(firebaseConfig.databaseURL + '/site_live_edits/sections.json', 15000),
+                fetchJsonWithTimeout(firebaseConfig.databaseURL + '/site_live_edits/customize.json', 12000)
+            ]);
+
+            rawSiteHtml = htmlText || '';
+            parseStaticSectionsFromHtml(rawSiteHtml);
+
+            liveSectionOverrides = sectionsRes || {};
+            customizerData = custRes || {};
+
+            // Fallback to Firebase SDK for posts if REST returned empty/null
+            let loadedPosts = postsRest;
+            if (!loadedPosts || Object.keys(loadedPosts).length === 0) {
+                try {
+                    const snap = await database.ref('posts').once('value');
+                    loadedPosts = snap.val() || {};
+                } catch (e) { loadedPosts = loadedPosts || {}; }
+            }
+            firebasePostsMap = loadedPosts || {};
+
+            // Keep posts synced live via Firebase SDK (lightweight node)
+            if (!postsLiveBound) {
+                postsLiveBound = true;
+                try {
+                    database.ref('posts').on('value', (snap) => {
+                        const val = snap.val();
+                        if (val && typeof val === 'object') {
+                            firebasePostsMap = val;
+                            renderNavLists();
+                        }
+                    });
+                } catch (e) {}
+            }
+
+            // Build instant lightweight stub map for all Admin Pages from shallow keys
+            let pageIds = (pagesShallow && typeof pagesShallow === 'object') ? Object.keys(pagesShallow) : [];
+            if (pageIds.length === 0) {
+                // Fallback: try direct REST read if shallow failed
+                const fullPages = await fetchJsonWithTimeout(firebaseConfig.databaseURL + '/pages.json', 25000);
+                if (fullPages && typeof fullPages === 'object') {
+                    firebasePagesMap = fullPages;
+                    pageIds = Object.keys(fullPages);
+                }
+            } else {
+                const nextMap = {};
+                pageIds.forEach(id => {
+                    const prev = firebasePagesMap[id];
+                    if (prev && typeof prev.content === 'string') {
+                        nextMap[id] = prev;
+                    } else {
+                        nextMap[id] = {
+                            title: (prev && prev.title) ? prev.title : id.replace(/[-_]+/g, ' '),
+                            timestamp: (prev && prev.timestamp) ? prev.timestamp : 0,
+                            _needsLoad: true
+                        };
+                    }
+                });
+                firebasePagesMap = nextMap;
+            }
+
+            populateCustomizerForm();
+            renderNavLists();
+
+            // Open #about by default (or first available target)
+            if (!activeTarget) {
+                if (staticSectionsMap['about']) {
+                    selectTarget('static', 'about');
+                } else {
+                    const firstPage = Object.keys(firebasePagesMap)[0];
+                    if (firstPage) selectTarget('page', firstPage);
+                }
+            }
+            checkLiveSiteReceiverStatus();
+            hydrateAdminPageTitlesInBackground(pageIds);
+            showToast('✅ تمام صفحات اور پوسٹس لوڈ ہو گئیں!');
+        } catch (err) {
+            console.error(err);
+            showToast('❌ ڈیٹا لوڈ کرنے میں خرابی: ' + err.message);
+        }
+    }
+
+    async function hydrateAdminPageTitlesInBackground(pageIds) {
+        const myRun = ++titleHydrationRunId;
+        const missing = (pageIds || []).filter(id => firebasePagesMap[id] && firebasePagesMap[id]._needsLoad);
+        const statusEl = document.getElementById('pagesHydrationStatus');
+        const totalAll = (pageIds || []).length;
+        if (!missing.length) {
+            if (statusEl) {
+                statusEl.style.display = 'block';
+                statusEl.textContent = '✅ تمام ' + totalAll + ' ایڈمن صفحات اور ' + Object.keys(firebasePostsMap).length + ' پوسٹس مکمل لوڈ ہیں';
+            }
+            return;
+        }
+
+        let hydratedCount = totalAll - missing.length;
+        const updateStatus = (doneNow) => {
+            if (!statusEl) return;
+            statusEl.style.display = 'block';
+            if (doneNow) {
+                statusEl.style.background = '#ecfdf5';
+                statusEl.style.color = '#065f46';
+                statusEl.style.borderColor = '#a7f3d0';
+                statusEl.textContent = '✅ تمام ' + hydratedCount + ' / ' + totalAll + ' ایڈمن صفحات مکمل لوڈ ہو گئے!';
+            } else {
+                statusEl.style.background = '#fffbeb';
+                statusEl.style.color = '#92400e';
+                statusEl.style.borderColor = '#fde68a';
+                statusEl.textContent = '⏳ ایڈمن صفحات لوڈ ہو رہے ہیں: ' + hydratedCount + ' / ' + totalAll + '...';
+            }
+        };
+        updateStatus(false);
+
+        const loadOnePage = async (id) => {
+            const enc = encodeURIComponent(id);
+            // Skip 7.76MB body of masail-video in background (still hydrate title & timestamp; body loads on click)
+            if (id === 'masail-video') {
+                const [t, ts] = await Promise.all([
+                    fetchJsonWithTimeout(firebaseConfig.databaseURL + '/pages/' + enc + '/title.json', 15000),
+                    fetchJsonWithTimeout(firebaseConfig.databaseURL + '/pages/' + enc + '/timestamp.json', 15000)
+                ]);
+                if (typeof t === 'string' && t.trim()) {
+                    firebasePagesMap[id].title = t.trim();
+                    if (typeof ts === 'number') firebasePagesMap[id].timestamp = ts;
+                    firebasePagesMap[id]._metaLoaded = true;
+                    return true;
+                }
+                return false;
+            }
+            let data = await fetchJsonWithTimeout(firebaseConfig.databaseURL + '/pages/' + enc + '.json', 18000);
+            if (!data || typeof data !== 'object') {
+                try {
+                    const snap = await database.ref('pages/' + id).once('value');
+                    data = snap.val();
+                } catch (e) {}
+            }
+            if (data && typeof data === 'object') {
+                firebasePagesMap[id] = { ...data, _needsLoad: false };
+                return true;
+            }
+            return false;
+        };
+
+        const failedIds = [];
+        const CONC = 12;
+        for (let i = 0; i < missing.length; i += CONC) {
+            if (myRun !== titleHydrationRunId) return;
+            const batch = missing.slice(i, i + CONC);
+            await Promise.all(batch.map(async (id) => {
+                const ok = await loadOnePage(id);
+                if (ok) hydratedCount++;
+                else failedIds.push(id);
+            }));
+            updateStatus(false);
+            renderNavLists();
+        }
+
+        // Retry pass for any network-dropped pages so 100% load reliably
+        if (failedIds.length > 0 && myRun === titleHydrationRunId) {
+            for (let i = 0; i < failedIds.length; i += 4) {
+                if (myRun !== titleHydrationRunId) return;
+                const retryBatch = failedIds.slice(i, i + 4);
+                await Promise.all(retryBatch.map(async (id) => {
+                    const ok = await loadOnePage(id);
+                    if (ok) hydratedCount++;
+                }));
+                updateStatus(false);
+                renderNavLists();
+            }
+        }
+
+        if (myRun === titleHydrationRunId) {
+            updateStatus(true);
+            renderNavLists();
+            // Realtime watch for newly added/edited Admin pages
+            if (!window._pagesLiveWatched) {
+                window._pagesLiveWatched = true;
+                try {
+                    const watchFrom = Date.now() - 60000;
+                    const mergePageSnap = (snap) => {
+                        const k = snap && snap.key;
+                        const v = snap && snap.val();
+                        if (!k || !v || typeof v !== 'object') return;
+                        firebasePagesMap[k] = { ...v, _needsLoad: false };
+                        renderNavLists();
+                    };
+                    database.ref('pages').orderByChild('timestamp').startAt(watchFrom).on('child_added', mergePageSnap);
+                    database.ref('pages').orderByChild('timestamp').startAt(watchFrom).on('child_changed', mergePageSnap);
+                } catch (e) {}
+            }
+        }
+    }
+
+    async function checkLiveSiteReceiverStatus() {
+        const badge = document.getElementById('liveSyncStatusBadge');
+        const banner = document.getElementById('liveReceiverWarningBanner');
+        try {
+            const res = await fetch(LIVE_SITE_URL + '?sync_chk=' + Date.now(), { cache: 'no-store' });
+            if (res.ok) {
+                const txt = await res.text();
+                liveSiteHasReceiver = txt.includes('applyLiveSiteEdits');
+                if (badge) {
+                    badge.style.display = 'inline-flex';
+                    if (liveSiteHasReceiver) {
+                        badge.textContent = '🟢 لائیو Sync آن';
+                        badge.style.background = '#ecfdf5';
+                        badge.style.color = '#065f46';
+                        badge.style.borderColor = '#10b981';
+                    } else {
+                        badge.textContent = '🟠 index.html اپڈیٹ درکار';
+                        badge.style.background = '#fffbeb';
+                        badge.style.color = '#92400e';
+                        badge.style.borderColor = '#f59e0b';
+                    }
+                }
+                if (banner) banner.style.display = liveSiteHasReceiver ? 'none' : 'flex';
+            }
+        } catch (e) {}
+    }
+
+    async function refreshAllFromSource() {
+        if (isDirty && !confirm('موجودہ صفحے میں غیر محفوظ تبدیلیاں ہیں۔ کیا آپ تازہ ڈیٹا لوڈ کرنا چاہتے ہیں؟')) return;
+        await bootstrapEditorData();
+    }
+
+    // ========== RENDER LEFT SIDEBAR LISTS ==========
+    function escapeHtml(str) {
+        return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function normalizeSearchText(str) {
+        return String(str || '')
+            .toLowerCase()
+            .replace(/[\u064B-\u065F\u0670]/g, '')
+            .replace(/[يیى]/g, 'ی')
+            .replace(/[كک]/g, 'ک')
+            .replace(/[ةهہ]/g, 'ہ')
+            .replace(/[أإآ]/g, 'ا')
+            .replace(/[-_./|\\#]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function matchesSearchTokens(queryNorm, fields) {
+        if (!queryNorm) return true;
+        const tokens = queryNorm.split(' ').filter(Boolean);
+        if (!tokens.length) return true;
+        const haystack = fields.map(normalizeSearchText).join(' ');
+        return tokens.every(tok => haystack.includes(tok));
+    }
+
+    function selectTargetFromRow(rowEl) {
+        if (!rowEl) return;
+        const kind = rowEl.getAttribute('data-kind');
+        const id = rowEl.getAttribute('data-id');
+        if (kind && id !== null) selectTarget(kind, id);
+    }
+
+    function renderNavLists() {
+        const scrollHost = document.getElementById('leftTab-pages');
+        const prevScrollTop = scrollHost ? scrollHost.scrollTop : 0;
+        const rawQ = (document.getElementById('pagesFilterInput').value || '').trim();
+        const qNorm = normalizeSearchText(rawQ);
+        const totalPagesAll = Object.keys(firebasePagesMap).length;
+        const totalPostsAll = Object.keys(firebasePostsMap).length;
+        const chipPages = document.getElementById('chipPagesTotal');
+        const chipPosts = document.getElementById('chipPostsTotal');
+        if (chipPages) chipPages.textContent = totalPagesAll;
+        if (chipPosts) chipPosts.textContent = totalPostsAll;
+
+        const showStatic = navCategoryFilter === 'all' || navCategoryFilter === 'static';
+        const showPages = navCategoryFilter === 'all' || navCategoryFilter === 'page';
+        const showPosts = navCategoryFilter === 'all' || navCategoryFilter === 'post';
+
+        const gwStatic = document.getElementById('groupStaticWrap');
+        const gwPages = document.getElementById('groupPagesWrap');
+        const gwPosts = document.getElementById('groupPostsWrap');
+        if (gwStatic) gwStatic.style.display = showStatic ? 'block' : 'none';
+        if (gwPages) gwPages.style.display = showPages ? 'block' : 'none';
+        if (gwPosts) gwPosts.style.display = showPosts ? 'block' : 'none';
+
+        // 1. Static Sections
+        const staticArr = Object.values(staticSectionsMap).filter(s =>
+            matchesSearchTokens(qNorm, [s.id, s.title])
+        );
+        document.getElementById('staticCount').textContent = staticArr.length;
+        document.getElementById('staticSectionsList').innerHTML = staticArr.map(s => {
+            const isSel = activeTarget && activeTarget.kind === 'static' && activeTarget.id === s.id;
+            const hasOverride = !!(liveSectionOverrides[s.id] && liveSectionOverrides[s.id].html);
+            return `<div class="item-row ${isSel ? 'selected' : ''}" data-kind="static" data-id="${escapeHtml(s.id)}" onclick="selectTargetFromRow(this)">
+                <div class="item-row-main">
+                    <div class="item-row-title">${escapeHtml(s.title)}</div>
+                    <div class="item-row-sub">#${escapeHtml(s.id)}</div>
+                </div>
+                ${hasOverride ? '<span class="badge-edited">ترمیم شدہ</span>' : ''}
+            </div>`;
+        }).join('') || '<div style="font-size:0.78rem; color:#888; padding:6px;">کوئی نتیجہ نہیں</div>';
+
+        // 2. Firebase Pages
+        const pageEntries = Object.entries(firebasePagesMap)
+            .filter(([id, p]) => p && matchesSearchTokens(qNorm, [id, p.title || '', (typeof p.content === 'string' && p.content.length < 25000) ? p.content.replace(/<[^>]+>/g, ' ') : '']))
+            .sort((a, b) => ((b[1].timestamp || 0) - (a[1].timestamp || 0)));
+        document.getElementById('fbPagesCount').textContent = pageEntries.length;
+        document.getElementById('firebasePagesList').innerHTML = pageEntries.map(([id, p]) => {
+            const isSel = activeTarget && activeTarget.kind === 'page' && activeTarget.id === id;
+            const titleText = (typeof p.title === 'string' && p.title.trim()) ? p.title : id;
+            return `<div class="item-row ${isSel ? 'selected' : ''}" data-kind="page" data-id="${escapeHtml(id)}" onclick="selectTargetFromRow(this)">
+                <div class="item-row-main">
+                    <div class="item-row-title">${escapeHtml(titleText)}</div>
+                    <div class="item-row-sub">#${escapeHtml(id)}</div>
+                </div>
+            </div>`;
+        }).join('') || '<div style="font-size:0.78rem; color:#888; padding:6px;">کوئی ایڈمن صفحہ نہیں ملا</div>';
+
+        // 3. Firebase Posts
+        const postEntries = Object.entries(firebasePostsMap)
+            .filter(([id, p]) => p && matchesSearchTokens(qNorm, [id, p.title || '', (typeof p.content === 'string' && p.content.length < 25000) ? p.content.replace(/<[^>]+>/g, ' ') : '']))
+            .sort((a, b) => ((b[1].timestamp || 0) - (a[1].timestamp || 0)));
+        document.getElementById('fbPostsCount').textContent = postEntries.length;
+        document.getElementById('firebasePostsList').innerHTML = postEntries.map(([id, p]) => {
+            const isSel = activeTarget && activeTarget.kind === 'post' && activeTarget.id === id;
+            return `<div class="item-row ${isSel ? 'selected' : ''}" data-kind="post" data-id="${escapeHtml(id)}" onclick="selectTargetFromRow(this)">
+                <div class="item-row-main">
+                    <div class="item-row-title">${escapeHtml(p.title || 'Post')}</div>
+                    <div class="item-row-sub">پوسٹ ID: ${escapeHtml(id)}</div>
+                </div>
+            </div>`;
+        }).join('') || '<div style="font-size:0.78rem; color:#888; padding:6px;">کوئی پوسٹ نہیں ملی</div>';
+        if (scrollHost && prevScrollTop > 0) scrollHost.scrollTop = prevScrollTop;
+    }
+
+    // ========== SELECT TARGET DOCUMENT INTO LIVE VISUAL EDITOR ==========
+    function markDirty() {
+        isDirty = true;
+        document.getElementById('dirtyDot').classList.add('visible');
+    }
+    function clearDirty() {
+        isDirty = false;
+        document.getElementById('dirtyDot').classList.remove('visible');
+    }
+
+    async function selectTarget(kind, id) {
+        if (isDirty && activeTarget && (activeTarget.kind !== kind || activeTarget.id !== id)) {
+            if (!confirm('موجودہ صفحے میں غیر محفوظ تبدیلیاں ہیں۔ کیا آپ بغیر پبلش کیے دوسرا صفحہ کھولنا چاہتے ہیں؟')) return;
+        }
+        activeTarget = { kind, id };
+        selectedEl = null;
+        lastCanvasClickPoint = null;
+        document.getElementById('floatingBlockBar').style.display = 'none';
+        document.getElementById('elementControls').style.display = 'none';
+        document.getElementById('selectedBlockLabel').textContent = 'کسی بھی ٹیکسٹ، لنک، تصویر یا ویڈیو پر کلک کر کے ایڈٹ کریں۔';
+
+        let title = '';
+        let html = '';
+        let typeLabel = '';
+        let directUrl = LIVE_SITE_URL + '#' + encodeURIComponent(id);
+
+        if (kind === 'static') {
+            const s = staticSectionsMap[id];
+            const ov = liveSectionOverrides[id];
+            title = (ov && ov.title) ? ov.title : (s ? s.title : id);
+            html = (ov && ov.html) ? ov.html : (s ? s.originalHtml : '');
+            typeLabel = 'مستقل ویب سائٹ صفحہ (Static HTML Section)';
+            document.getElementById('revertStaticBtn').style.display = (ov && ov.html) ? 'block' : 'none';
+            document.getElementById('deleteDocBtn').style.display = 'none';
+            document.getElementById('docTitleInput').disabled = false;
+        } else if (kind === 'page') {
+            let p = firebasePagesMap[id] || {};
+            if (p._needsLoad || typeof p.content !== 'string') {
+                document.getElementById('docTitleInput').value = p.title || id;
+                document.getElementById('visualCanvas').innerHTML = '<p style="text-align:center; padding:40px; color:#006b54; font-weight:bold;">⏳ ایڈمن صفحہ فائر بیس سے لوڈ ہو رہا ہے...</p>';
+                document.getElementById('leftSidebar').classList.remove('mobile-open');
+                let fullData = await fetchJsonWithTimeout(firebaseConfig.databaseURL + '/pages/' + encodeURIComponent(id) + '.json', 25000);
+                if (!fullData) {
+                    try {
+                        const snap = await database.ref('pages/' + id).once('value');
+                        fullData = snap.val();
+                    } catch (e) {}
+                }
+                if (!activeTarget || activeTarget.kind !== 'page' || activeTarget.id !== id) return;
+                if (fullData && typeof fullData === 'object') {
+                    p = { ...fullData, _needsLoad: false };
+                    firebasePagesMap[id] = p;
+                }
+            }
+            title = p.title || id;
+            html = formatPlainOrHtmlForCanvas(p.content || '');
+            typeLabel = 'ایڈمن صفحہ (Firebase Page)';
+            document.getElementById('revertStaticBtn').style.display = 'none';
+            document.getElementById('deleteDocBtn').style.display = 'block';
+            document.getElementById('docTitleInput').disabled = false;
+        } else if (kind === 'post') {
+            let p = firebasePostsMap[id] || {};
+            if (typeof p.content !== 'string') {
+                const fullPost = await fetchJsonWithTimeout(firebaseConfig.databaseURL + '/posts/' + encodeURIComponent(id) + '.json', 15000);
+                if (!activeTarget || activeTarget.kind !== 'post' || activeTarget.id !== id) return;
+                if (fullPost && typeof fullPost === 'object') {
+                    p = fullPost;
+                    firebasePostsMap[id] = p;
+                }
+            }
+            title = p.title || 'Post';
+            html = formatPlainOrHtmlForCanvas(p.content || '');
+            typeLabel = 'بلاگ پوسٹ (Firebase Post)';
+            directUrl = LIVE_SITE_URL + '#posts';
+            document.getElementById('revertStaticBtn').style.display = 'none';
+            document.getElementById('deleteDocBtn').style.display = 'block';
+            document.getElementById('docTitleInput').disabled = false;
+        }
+
+        document.getElementById('docTitleInput').value = title;
+        document.getElementById('activeDocBadge').innerHTML = escapeHtml(title || id) + ' <span class="dirty-dot" id="dirtyDot"></span>';
+        document.getElementById('metaTypeDisplay').value = typeLabel;
+        document.getElementById('metaIdDisplay').value = id;
+        document.getElementById('metaDirectUrl').value = directUrl;
+        document.getElementById('viewLiveBtn').href = directUrl;
+
+        const canvas = document.getElementById('visualCanvas');
+        canvas.innerHTML = html || '<p>یہاں اپنا نیا مواد لکھنا شروع کریں...</p>';
+        hydrateChunkedPreviewsInCanvas(canvas);
+        document.getElementById('htmlCodeTextarea').value = canvas.innerHTML;
+
+        undoStack = [canvas.innerHTML];
+        redoStack = [];
+        clearDirty();
+        renderNavLists();
+        // Close mobile sidebar after choosing
+        document.getElementById('leftSidebar').classList.remove('mobile-open');
+    }
+
+    function formatPlainOrHtmlForCanvas(raw) {
+        if (!raw) return '<p></p>';
+        if (/<[a-z][\s\S]*>/i.test(raw)) return raw;
+        return raw.split(/\n+/).map(line => '<p>' + escapeHtml(line) + '</p>').join('');
+    }
+
+    // Hydrate chunked media previews inside canvas so user sees real player thumbnails while editing
+    async function hydrateChunkedPreviewsInCanvas(rootEl) {
+        const cards = rootEl.querySelectorAll('.fb-chunked-media[data-media-id]');
+        for (const card of cards) {
+            if (card.dataset.previewHydrated) continue;
+            card.dataset.previewHydrated = '1';
+            const bar = card.querySelector('.chunk-status-bar');
+            const fName = card.getAttribute('data-file-name') || 'Media';
+            const fSize = card.getAttribute('data-file-size') || '';
+            if (bar) {
+                bar.textContent = '🎬 منسلک میڈیا: ' + fName + (fSize ? ' (' + fSize + ')' : '') + ' — ویب سائٹ پر خودکار چلے گا';
+                bar.style.background = '#e8f5e9';
+                bar.style.color = '#1b5e20';
+            }
+        }
+    }
+
+    // ========== VISUAL VS CODE MODE & UNDO/REDO ==========
+    function setEditorMode(mode) {
+        const canvas = document.getElementById('visualCanvas');
+        const codeWrap = document.getElementById('codeEditorWrapper');
+        const codeBox = document.getElementById('htmlCodeTextarea');
+        if (mode === 'code' && editorMode === 'visual') {
+            codeBox.value = getCanvasHtml();
+            closeActiveInsertSlot();
+            document.getElementById('floatingBlockBar').style.display = 'none';
+            canvas.style.display = 'none';
+            codeWrap.style.display = 'block';
+        } else if (mode === 'visual' && editorMode === 'code') {
+            canvas.innerHTML = codeBox.value;
+            hydrateChunkedPreviewsInCanvas(canvas);
+            codeWrap.style.display = 'none';
+            canvas.style.display = 'block';
+        }
+        editorMode = mode;
+        document.getElementById('modeVisualBtn').classList.toggle('active', mode === 'visual');
+        document.getElementById('modeCodeBtn').classList.toggle('active', mode === 'code');
+    }
+
+    function pushUndoSnapshot() {
+        const html = getCanvasHtml();
+        if (undoStack[undoStack.length - 1] !== html) {
+            undoStack.push(html);
+            if (undoStack.length > 40) undoStack.shift();
+            redoStack = [];
+        }
+    }
+
+    function undoCanvas() {
+        if (undoStack.length <= 1) { showToast('مزید پیچھے جانے کے لیے کوئی تبدیلی نہیں۔'); return; }
+        const cur = undoStack.pop();
+        redoStack.push(cur);
+        const prev = undoStack[undoStack.length - 1];
+        applyHtmlToActiveEditor(prev);
+        markDirty();
+        showToast('↩️ واپس کر دیا گیا');
+    }
+
+    function redoCanvas() {
+        if (redoStack.length === 0) return;
+        const next = redoStack.pop();
+        undoStack.push(next);
+        applyHtmlToActiveEditor(next);
+        markDirty();
+        showToast('↪️ دوبارہ لاگو کر دیا گیا');
+    }
+
+    function getCanvasHtml() {
+        if (editorMode === 'code') return document.getElementById('htmlCodeTextarea').value;
+        // Clean transient editor helper classes, insert slot & accidental empty button clones before saving
+        const clone = document.getElementById('visualCanvas').cloneNode(true);
+        const activeSlot = clone.querySelector('#wpActiveInsertSlot');
+        if (activeSlot) {
+            const draftEl = activeSlot.querySelector('#wpSlotDraftText');
+            const draftTxt = draftEl ? (draftEl.innerText || draftEl.textContent || '').trim() : '';
+            if (draftTxt) {
+                const p = document.createElement('p');
+                p.textContent = draftTxt;
+                activeSlot.replaceWith(p);
+            } else {
+                activeSlot.remove();
+            }
+        }
+        clone.querySelectorAll('.wp-selected-block, .wp-editable-hover').forEach(el => {
+            el.classList.remove('wp-selected-block', 'wp-editable-hover');
+        });
+        clone.querySelectorAll('[data-preview-hydrated]').forEach(el => el.removeAttribute('data-preview-hydrated'));
+        clone.querySelectorAll('button').forEach(btn => {
+            if (!btn.querySelector('i, svg, img') && (btn.textContent || '').trim() === '') {
+                btn.remove();
+            }
+        });
+        return clone.innerHTML;
+    }
+
+    function applyHtmlToActiveEditor(html) {
+        if (editorMode === 'code') {
+            document.getElementById('htmlCodeTextarea').value = html;
+        } else {
+            const c = document.getElementById('visualCanvas');
+            c.innerHTML = html;
+            hydrateChunkedPreviewsInCanvas(c);
+        }
+    }
+
+    // ========== INLINE SELECTION, CLICK-TO-EDIT & BLOCK INSPECTOR ==========
+    const canvasEl = document.getElementById('visualCanvas');
+
+    canvasEl.addEventListener('input', () => {
+        markDirty();
+        clearTimeout(snapshotTimer);
+        snapshotTimer = setTimeout(pushUndoSnapshot, 650);
+    });
+
+    canvasEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const sel = window.getSelection();
+            const anchor = sel && sel.anchorNode ? (sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode) : null;
+            const insideBtn = anchor && anchor.closest('button, .video-card-actions, .btn-play-action, .btn-action-icon');
+            if (insideBtn && canvasEl.contains(insideBtn)) {
+                e.preventDefault();
+                const cardHost = insideBtn.closest('.video-master-card, .wp-custom-block, .video-card, #visualCanvas > *') || insideBtn;
+                const newP = document.createElement('p');
+                newP.innerHTML = '<br>';
+                if (cardHost.parentNode) cardHost.parentNode.insertBefore(newP, cardHost.nextSibling);
+                else canvasEl.appendChild(newP);
+                const r = document.createRange();
+                r.setStart(newP, 0);
+                r.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(r);
+                savedSelectionRange = r.cloneRange();
+                selectCanvasBlock(newP);
+                markDirty();
+            }
+        }
+    });
+
+    canvasEl.addEventListener('mouseup', saveCurrentRange);
+    canvasEl.addEventListener('keyup', saveCurrentRange);
+
+    function saveCurrentRange() {
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+            const r = sel.getRangeAt(0);
+            if (canvasEl.contains(r.commonAncestorContainer)) {
+                savedSelectionRange = r.cloneRange();
+            }
+        }
+    }
+
+    // Hover highlight
+    canvasEl.addEventListener('mouseover', (e) => {
+        const t = findSelectableTarget(e.target);
+        canvasEl.querySelectorAll('.wp-editable-hover').forEach(x => x.classList.remove('wp-editable-hover'));
+        if (t && t !== selectedEl) t.classList.add('wp-editable-hover');
+    });
+
+    canvasEl.addEventListener('click', (e) => {
+        if (e.target.closest('#wpActiveInsertSlot')) return;
+        // Prevent anchor navigation while editing live
+        const anchor = e.target.closest('a');
+        if (anchor && canvasEl.contains(anchor)) {
+            e.preventDefault();
+        }
+        lastCanvasClickPoint = { x: e.clientX, y: e.clientY };
+
+        // Capture caret range at click position even on blank or non-wrapped clicks
+        try {
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0 && canvasEl.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+                savedSelectionRange = sel.getRangeAt(0).cloneRange();
+            } else if (document.caretRangeFromPoint) {
+                const cr = document.caretRangeFromPoint(e.clientX, e.clientY);
+                if (cr && canvasEl.contains(cr.commonAncestorContainer)) savedSelectionRange = cr;
+            } else if (document.caretPositionFromPoint) {
+                const cp = document.caretPositionFromPoint(e.clientX, e.clientY);
+                if (cp && cp.offsetNode && canvasEl.contains(cp.offsetNode)) {
+                    const cr = document.createRange();
+                    cr.setStart(cp.offsetNode, cp.offset);
+                    cr.collapse(true);
+                    savedSelectionRange = cr;
+                }
+            }
+        } catch(_) {}
+
+        const t = findSelectableTarget(e.target);
+        if (t) {
+            selectCanvasBlock(t, e.clientX, e.clientY);
+        } else {
+            // Clicked empty page area: open the in-page editing + 4-option slot directly right at clicked vertical spot
+            canvasEl.querySelectorAll('.wp-selected-block').forEach(x => x.classList.remove('wp-selected-block'));
+            selectedEl = null;
+            document.getElementById('floatingBlockBar').style.display = 'none';
+            document.getElementById('elementControls').style.display = 'none';
+            document.getElementById('selectedBlockLabel').textContent = 'صفحے کا منتخب مقام: نیچے باکس میں ٹیکسٹ لکھیں یا تصویر، ویڈیو، لنک شامل کریں۔';
+            openInsertSlotAtClickPoint(e.clientY);
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        const bar = document.getElementById('floatingBlockBar');
+        if (!bar || bar.style.display === 'none') return;
+        if (canvasEl.contains(e.target) || bar.contains(e.target)) return;
+        if (e.target.closest('#rightSidebar') || e.target.closest('.wp-modal-backdrop')) return;
+        bar.style.display = 'none';
+    });
+
+    function findSelectableTarget(node) {
+        if (!node || node === canvasEl) return null;
+        if (node.nodeType === 3) node = node.parentElement;
+        if (!node || !canvasEl.contains(node)) return null;
+        if (node.closest('#wpActiveInsertSlot')) return null;
+        // Prefer direct structural element or clicked link/img/media card
+        const mediaCard = node.closest('.fb-chunked-media, .user-uploaded-video, .user-uploaded-audio, .user-uploaded-img, .embedded-video-card, .wp-custom-block');
+        if (mediaCard && canvasEl.contains(mediaCard)) return mediaCard;
+        const anchor = node.closest('a');
+        if (anchor && canvasEl.contains(anchor)) return anchor;
+        if (node.tagName === 'IMG' || node.tagName === 'VIDEO' || node.tagName === 'IFRAME') return node;
+        // Direct block child or semantic tag
+        let cur = node;
+        while (cur && cur.parentElement !== canvasEl) {
+            if (['H1','H2','H3','H4','P','LI','BLOCKQUOTE','BUTTON','TABLE'].includes(cur.tagName)) break;
+            cur = cur.parentElement;
+        }
+        return (cur && cur !== canvasEl) ? cur : node;
+    }
+
+    function selectCanvasBlock(el, clickX, clickY) {
+        canvasEl.querySelectorAll('.wp-selected-block').forEach(x => x.classList.remove('wp-selected-block'));
+        selectedEl = el;
+        el.classList.add('wp-selected-block');
+        populateBlockInspector(el);
+        positionFloatingToolbar(el, clickX, clickY);
+    }
+
+    function positionFloatingToolbar(el, clickX, clickY) {
+        const bar = document.getElementById('floatingBlockBar');
+        const hasBlock = !!(el && el !== canvasEl && document.contains(el));
+        if (!hasBlock) {
+            bar.style.display = 'none';
+            return;
+        }
+        const sep = document.getElementById('fbBlockSep');
+        const acts = document.getElementById('fbBlockActions');
+        if (sep) sep.style.display = 'inline-block';
+        if (acts) acts.style.display = 'inline-flex';
+
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 && rect.height === 0 && typeof clickY !== 'number') {
+            bar.style.display = 'none';
+            return;
+        }
+
+        const scrollEl = document.querySelector('.canvas-scroll');
+        const scrollRect = scrollEl ? scrollEl.getBoundingClientRect() : { top: 145, bottom: window.innerHeight };
+        const minTop = Math.max(64, scrollRect.top + 8);
+
+        bar.style.display = 'inline-flex';
+        const barW = bar.offsetWidth || 340;
+        const barH = bar.offsetHeight || 48;
+
+        let rawTop;
+        let rawLeft;
+        if (typeof clickX === 'number' && typeof clickY === 'number') {
+            rawTop = (clickY - barH - 14 >= minTop) ? (clickY - barH - 14) : (clickY + 14);
+            rawLeft = clickX - (barW / 2);
+        } else {
+            rawTop = (rect.top - barH - 8 >= minTop) ? (rect.top - barH - 8) : Math.min(rect.bottom + 8, window.innerHeight - barH - 14);
+            rawLeft = rect.left + (rect.width / 2) - (barW / 2);
+        }
+
+        const top = Math.max(minTop, Math.min(window.innerHeight - barH - 12, rawTop));
+        const left = Math.max(10, Math.min(window.innerWidth - barW - 10, rawLeft));
+        bar.style.top = top + 'px';
+        bar.style.left = left + 'px';
+    }
+
+    function closeActiveInsertSlot() {
+        const old = document.getElementById('wpActiveInsertSlot');
+        if (old) old.remove();
+    }
+
+    function createInsertSlotElement(labelText) {
+        closeActiveInsertSlot();
+        const slot = document.createElement('div');
+        slot.id = 'wpActiveInsertSlot';
+        slot.className = 'wp-insert-slot';
+        slot.setAttribute('contenteditable', 'false');
+        slot.innerHTML =
+            '<div class="wp-insert-slot-head">' +
+                '<span>' + escapeHtml(labelText) + '</span>' +
+                '<button type="button" class="wp-slot-close" onmousedown="event.stopPropagation()" onclick="event.stopPropagation(); closeActiveInsertSlot()">✖ بند کریں</button>' +
+            '</div>' +
+            '<div id="wpSlotDraftText" class="wp-slot-text" contenteditable="true" dir="rtl" data-placeholder="✍️ یہاں نیا ٹیکسٹ لکھیں... (یا نیچے دیے گئے 5 آپشنز میں سے کوئی چُنیں)"></div>' +
+            '<div class="wp-slot-actions">' +
+                '<button type="button" class="wp-slot-btn primary" onmousedown="event.preventDefault(); event.stopPropagation()" onclick="event.stopPropagation(); commitSlotWriteText()">✍️ ٹیکسٹ لکھیں</button>' +
+                '<button type="button" class="wp-slot-btn" onmousedown="event.preventDefault(); event.stopPropagation()" onclick="event.stopPropagation(); triggerMediaPicker(\'image\')">🖼️ تصویر اپلوڈ</button>' +
+                '<button type="button" class="wp-slot-btn" onmousedown="event.preventDefault(); event.stopPropagation()" onclick="event.stopPropagation(); triggerMediaPicker(\'video\')">🎬 ویڈیو اپلوڈ</button>' +
+                '<button type="button" class="wp-slot-btn" onmousedown="event.preventDefault(); event.stopPropagation()" onclick="event.stopPropagation(); triggerMediaPicker(\'audio\')">🎵 آڈیو اپلوڈ</button>' +
+                '<button type="button" class="wp-slot-btn" onmousedown="event.preventDefault(); event.stopPropagation()" onclick="event.stopPropagation(); openLinkModal()">🔗 یوٹیوب / لنک</button>' +
+            '</div>';
+        slot.addEventListener('click', (ev) => ev.stopPropagation());
+        return slot;
+    }
+
+    function resolveInsertionAnchorBlock(el) {
+        if (!el || !canvasEl.contains(el) || el === canvasEl) return null;
+        const ref = el.closest('.fb-chunked-media, .embedded-video-card, .user-uploaded-img, .user-uploaded-video, .user-uploaded-audio, .video-master-card, .wp-custom-block, p, h1, h2, h3, h4, li, blockquote, table, div, section') || el;
+        return (ref && ref !== canvasEl && canvasEl.contains(ref)) ? ref : el;
+    }
+
+    function openInsertSlotRelative(dir) {
+        if (editorMode === 'code') { setEditorMode('visual'); }
+        const ref = resolveInsertionAnchorBlock(selectedEl);
+        if (!ref || !ref.parentNode) {
+            openInsertSlotAtClickPoint(lastCanvasClickPoint ? lastCanvasClickPoint.y : null);
+            return;
+        }
+        const label = (dir === 'above')
+            ? '📍 منتخب حصے کے اوپر نیا مواد ایڈ کریں (پہلے ٹیکسٹ لکھیں یا نیچے سے آپشن چُنیں):'
+            : '📍 منتخب حصے کے نیچے نیا مواد ایڈ کریں (پہلے ٹیکسٹ لکھیں یا نیچے سے آپشن چُنیں):';
+        const slot = createInsertSlotElement(label);
+        if (dir === 'above') {
+            ref.parentNode.insertBefore(slot, ref);
+        } else {
+            ref.parentNode.insertBefore(slot, ref.nextSibling);
+        }
+        document.getElementById('floatingBlockBar').style.display = 'none';
+        slot.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const draft = document.getElementById('wpSlotDraftText');
+        if (draft) setTimeout(() => draft.focus(), 60);
+    }
+
+    function openInsertSlotAtClickPoint(clickY) {
+        if (editorMode === 'code') { setEditorMode('visual'); }
+        const slot = createInsertSlotElement('📍 اس جگہ نیا مواد ایڈ کریں (یہاں ٹیکسٹ لکھیں یا نیچے سے آپشن چُنیں):');
+        let beforeChild = null;
+        if (typeof clickY === 'number') {
+            for (const child of Array.from(canvasEl.children)) {
+                if (child.id === 'wpActiveInsertSlot') continue;
+                const r = child.getBoundingClientRect();
+                if (clickY < r.top + r.height / 2) {
+                    beforeChild = child;
+                    break;
+                }
+            }
+        }
+        if (beforeChild) canvasEl.insertBefore(slot, beforeChild);
+        else canvasEl.appendChild(slot);
+        slot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        const draft = document.getElementById('wpSlotDraftText');
+        if (draft) setTimeout(() => draft.focus(), 60);
+    }
+
+    function commitSlotWriteText() {
+        const slot = document.getElementById('wpActiveInsertSlot');
+        if (!slot || !slot.parentNode) {
+            quickActionWriteTextHere();
+            return;
+        }
+        const draft = document.getElementById('wpSlotDraftText');
+        const rawHtml = draft ? draft.innerHTML.trim() : '';
+        const plainTxt = draft ? (draft.innerText || draft.textContent || '').trim() : '';
+        const newP = document.createElement('p');
+        newP.style.minHeight = '1.6em';
+        if (plainTxt) {
+            newP.innerHTML = rawHtml;
+        } else {
+            newP.innerHTML = '<br>';
+        }
+        slot.parentNode.insertBefore(newP, slot);
+        slot.remove();
+
+        canvasEl.focus();
+        const sel = window.getSelection();
+        if (sel) {
+            const r = document.createRange();
+            r.selectNodeContents(newP);
+            r.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(r);
+            savedSelectionRange = r.cloneRange();
+        }
+        selectCanvasBlock(newP);
+        markDirty();
+        pushUndoSnapshot();
+        showToast(plainTxt ? '✅ ٹیکسٹ شامل ہو گیا — مزید لکھنا چاہیں تو جاری رکھیں' : '✍️ نئی لائن تیار ہے — اب ٹائپ کریں');
+    }
+
+    function quickActionWriteTextHere() {
+        if (editorMode === 'code') { setEditorMode('visual'); }
+        const sel = window.getSelection();
+        const isNonTextEl = selectedEl && (
+            ['IMG', 'VIDEO', 'IFRAME', 'HR', 'BUTTON'].includes(selectedEl.tagName) ||
+            selectedEl.classList.contains('fb-chunked-media') ||
+            selectedEl.classList.contains('embedded-video-card') ||
+            selectedEl.classList.contains('user-uploaded-img') ||
+            selectedEl.classList.contains('user-uploaded-video') ||
+            selectedEl.classList.contains('user-uploaded-audio') ||
+            selectedEl.classList.contains('video-master-card')
+        );
+
+        if (!isNonTextEl && savedSelectionRange && canvasEl.contains(savedSelectionRange.commonAncestorContainer)) {
+            const anc = savedSelectionRange.commonAncestorContainer;
+            const ancEl = anc.nodeType === 3 ? anc.parentElement : anc;
+            if (ancEl && ancEl !== canvasEl && !ancEl.closest('button, .fb-chunked-media, .embedded-video-card')) {
+                canvasEl.focus();
+                if (sel) {
+                    sel.removeAllRanges();
+                    sel.addRange(savedSelectionRange);
+                }
+                showToast('✍️ اب آپ یہاں ٹیکسٹ لکھ سکتے ہیں');
+                return;
+            }
+        }
+        openInsertSlotRelative('below');
+    }
+
+    document.querySelector('.canvas-scroll').addEventListener('scroll', () => {
+        const bar = document.getElementById('floatingBlockBar');
+        if (bar && bar.style.display !== 'none' && selectedEl && document.contains(selectedEl)) {
+            positionFloatingToolbar(selectedEl);
+        }
+    });
+
+    function rgbToHex(rgb) {
+        if (!rgb || rgb === 'transparent') return '#ffffff';
+        const m = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (!m) return '#1d2327';
+        return '#' + [1,2,3].map(i => parseInt(m[i]).toString(16).padStart(2,'0')).join('');
+    }
+
+    function populateBlockInspector(el) {
+        const tag = el.tagName;
+        document.getElementById('selectedBlockLabel').textContent = 'منتخب عنصر: <' + tag.toLowerCase() + '>';
+        document.getElementById('elementControls').style.display = 'block';
+
+        const linkEl = (tag === 'A') ? el : el.querySelector('a');
+        document.getElementById('elHrefInput').value = linkEl ? (linkEl.getAttribute('href') || '') : '';
+        document.getElementById('elNewTabCheck').checked = linkEl ? (linkEl.getAttribute('target') === '_blank') : false;
+
+        const imgEl = (tag === 'IMG') ? el : el.querySelector('img');
+        const imgWrap = document.getElementById('elImgSrcWrap');
+        if (imgEl) {
+            imgWrap.style.display = 'block';
+            document.getElementById('elSrcInput').value = imgEl.getAttribute('src') || '';
+        } else {
+            imgWrap.style.display = 'none';
+        }
+
+        const isSized = !!(imgEl || tag === 'VIDEO' || tag === 'IFRAME' || el.classList.contains('wp-custom-block'));
+        document.getElementById('elWidthWrap').style.display = isSized ? 'block' : 'none';
+        document.getElementById('elWidthSelect').value = el.style.width || '';
+
+        const cs = getComputedStyle(el);
+        document.getElementById('elColorPicker').value = rgbToHex(cs.color);
+        document.getElementById('elBgPicker').value = rgbToHex(cs.backgroundColor);
+        document.getElementById('elFontSizeInput').value = parseInt(cs.fontSize) || '';
+        document.getElementById('elPaddingInput').value = parseInt(el.style.padding) || '';
+        document.getElementById('elRadiusInput').value = parseInt(el.style.borderRadius) || '';
+    }
+
+    function applySelectedStyle() {
+        if (!selectedEl) return;
+        const c = document.getElementById('elColorPicker').value;
+        const bg = document.getElementById('elBgPicker').value;
+        const fs = document.getElementById('elFontSizeInput').value;
+        const pad = document.getElementById('elPaddingInput').value;
+        const rad = document.getElementById('elRadiusInput').value;
+        const w = document.getElementById('elWidthSelect').value;
+
+        selectedEl.style.color = c;
+        if (bg && bg !== '#ffffff') selectedEl.style.backgroundColor = bg;
+        if (fs) selectedEl.style.fontSize = fs + 'px';
+        if (pad !== '') selectedEl.style.padding = pad + 'px';
+        if (rad !== '') selectedEl.style.borderRadius = rad + 'px';
+        if (w) {
+            selectedEl.style.width = w;
+            const innerImg = selectedEl.querySelector('img');
+            if (innerImg) innerImg.style.width = '100%';
+        }
+        markDirty();
+    }
+
+    function applySelectedAttributes() {
+        if (!selectedEl) return;
+        const href = document.getElementById('elHrefInput').value.trim();
+        const newTab = document.getElementById('elNewTabCheck').checked;
+        if (href) {
+            if (selectedEl.tagName === 'A') {
+                selectedEl.setAttribute('href', href);
+                if (newTab) selectedEl.setAttribute('target', '_blank'); else selectedEl.removeAttribute('target');
+            } else {
+                const a = selectedEl.querySelector('a');
+                if (a) {
+                    a.setAttribute('href', href);
+                    if (newTab) a.setAttribute('target', '_blank'); else a.removeAttribute('target');
+                } else {
+                    const wrapped = document.createElement('a');
+                    wrapped.href = href;
+                    if (newTab) wrapped.target = '_blank';
+                    wrapped.textContent = selectedEl.textContent;
+                    selectedEl.innerHTML = '';
+                    selectedEl.appendChild(wrapped);
+                }
+            }
+        }
+        const imgEl = (selectedEl.tagName === 'IMG') ? selectedEl : selectedEl.querySelector('img');
+        const newSrc = document.getElementById('elSrcInput').value.trim();
+        if (imgEl && newSrc) imgEl.src = newSrc;
+
+        applySelectedStyle();
+        pushUndoSnapshot();
+        showToast('✅ تبدیلی لاگو ہو گئی!');
+    }
+
+    function clearElProp(prop) {
+        if (!selectedEl) return;
+        selectedEl.style[prop] = '';
+        markDirty();
+    }
+
+    function moveSelectedBlock(dir) {
+        if (!selectedEl || !selectedEl.parentElement) return;
+        const parent = selectedEl.parentElement;
+        if (dir < 0 && selectedEl.previousElementSibling) {
+            parent.insertBefore(selectedEl, selectedEl.previousElementSibling);
+        } else if (dir > 0 && selectedEl.nextElementSibling) {
+            parent.insertBefore(selectedEl.nextElementSibling, selectedEl);
+        }
+        positionFloatingToolbar(selectedEl);
+        pushUndoSnapshot();
+        markDirty();
+    }
+
+    function duplicateSelectedBlock() {
+        if (!selectedEl || !selectedEl.parentElement) return;
+        const copy = selectedEl.cloneNode(true);
+        copy.classList.remove('wp-selected-block', 'wp-editable-hover');
+        selectedEl.parentElement.insertBefore(copy, selectedEl.nextSibling);
+        selectCanvasBlock(copy);
+        pushUndoSnapshot();
+        markDirty();
+        showToast('📋 کاپی بن گئی!');
+    }
+
+    function deleteSelectedBlock() {
+        if (!selectedEl) return;
+        if (!confirm('کیا آپ واقعی یہ منتخب حصہ حذف کرنا چاہتے ہیں؟')) return;
+        selectedEl.remove();
+        selectedEl = null;
+        document.getElementById('floatingBlockBar').style.display = 'none';
+        document.getElementById('elementControls').style.display = 'none';
+        pushUndoSnapshot();
+        markDirty();
+        showToast('🗑️ منتخب حصہ حذف ہو گیا');
+    }
+
+    // ========== FORMATTING & WORDPRESS GUTENBERG BLOCK INSERTER ==========
+    function execFmt(cmd, val) {
+        if (editorMode === 'code') { setEditorMode('visual'); }
+        canvasEl.focus();
+        if (savedSelectionRange) {
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(savedSelectionRange);
+        }
+        document.execCommand(cmd, false, val || null);
+        saveCurrentRange();
+        pushUndoSnapshot();
+        markDirty();
+    }
+
+    function applyBlockTag(tag) {
+        if (!tag) return;
+        execFmt('formatBlock', '<' + tag + '>');
+    }
+
+    function insertHtmlBlockAtPoint(htmlString) {
+        if (editorMode === 'code') {
+            const ta = document.getElementById('htmlCodeTextarea');
+            ta.value += '\n' + htmlString + '\n';
+            markDirty();
+            return;
+        }
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = htmlString.trim();
+        const nodes = Array.from(wrapper.childNodes);
+
+        const activeSlot = document.getElementById('wpActiveInsertSlot');
+        if (activeSlot && canvasEl.contains(activeSlot) && activeSlot.parentNode) {
+            const draft = document.getElementById('wpSlotDraftText');
+            const draftTxt = draft ? (draft.innerText || draft.textContent || '').trim() : '';
+            if (draftTxt) {
+                const p = document.createElement('p');
+                p.innerHTML = draft.innerHTML.trim();
+                activeSlot.parentNode.insertBefore(p, activeSlot);
+            }
+            nodes.forEach(n => activeSlot.parentNode.insertBefore(n, activeSlot));
+            activeSlot.remove();
+        } else if (selectedEl && canvasEl.contains(selectedEl)) {
+            const anchorParent = selectedEl.closest('.fb-chunked-media, .embedded-video-card, .user-uploaded-img, .user-uploaded-video, .user-uploaded-audio, .video-master-card, .wp-custom-block, p, h1, h2, h3, h4, li, blockquote, table, div, section') || selectedEl;
+            let ref = (anchorParent && anchorParent !== canvasEl && canvasEl.contains(anchorParent)) ? anchorParent : selectedEl;
+            nodes.forEach(n => {
+                ref.parentNode.insertBefore(n, ref.nextSibling);
+                ref = n;
+            });
+        } else if (savedSelectionRange && canvasEl.contains(savedSelectionRange.commonAncestorContainer) && savedSelectionRange.commonAncestorContainer !== canvasEl) {
+            const frag = document.createDocumentFragment();
+            nodes.forEach(n => frag.appendChild(n));
+            savedSelectionRange.deleteContents();
+            savedSelectionRange.insertNode(frag);
+        } else if (lastCanvasClickPoint) {
+            let beforeChild = null;
+            for (const child of Array.from(canvasEl.children)) {
+                const r = child.getBoundingClientRect();
+                if (lastCanvasClickPoint.y < r.top + r.height / 2) {
+                    beforeChild = child;
+                    break;
+                }
+            }
+            if (beforeChild) nodes.forEach(n => canvasEl.insertBefore(n, beforeChild));
+            else nodes.forEach(n => canvasEl.appendChild(n));
+        } else {
+            nodes.forEach(n => canvasEl.appendChild(n));
+        }
+        hydrateChunkedPreviewsInCanvas(canvasEl);
+        pushUndoSnapshot();
+        markDirty();
+        document.getElementById('leftSidebar').classList.remove('mobile-open');
+    }
+
+    function insertBlock(type) {
+        if (type === 'heading') {
+            insertHtmlBlockAtPoint('<h2>یہاں نئی سرخی لکھیں</h2>');
+        } else if (type === 'paragraph') {
+            insertHtmlBlockAtPoint('<p>یہاں اپنا نیا مضمون یا پیراگراف تحریر فرمائیں...</p>');
+        } else if (type === 'linkbtn') {
+            openLinkModal(true);
+        } else if (type === 'imageUrl') {
+            const url = prompt('تصویر کا URL لنک درج کریں (https://...):');
+            if (!url || !url.trim()) return;
+            const safe = escapeHtml(url.trim());
+            insertHtmlBlockAtPoint('<div class="user-uploaded-img wp-custom-block" style="text-align:center; margin:16px 0;"><img src="' + safe + '" alt="تصویر" style="max-width:100%; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.12);" loading="lazy"></div>');
+        } else if (type === 'youtube') {
+            const url = prompt('یوٹیوب ویڈیو یا Shorts کا لنک پیسٹ کریں:');
+            if (!url) return;
+            const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/i);
+            if (!m) { alert('❌ درست یوٹیوب لنک نہیں ملا۔'); return; }
+            const vid = m[1];
+            insertHtmlBlockAtPoint(
+                '<div class="embedded-video-card wp-custom-block" style="margin:18px 0; background:#fff; border:1px solid #d5e5df; border-radius:14px; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,0.08);">' +
+                '<div style="position:relative; width:100%; aspect-ratio:16/9; background:#000;"><iframe src="https://www.youtube-nocookie.com/embed/' + vid + '" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen loading="lazy"></iframe></div>' +
+                '<div style="padding:10px 16px; display:flex; justify-content:space-between; align-items:center; background:#eef9f6;"><span style="font-weight:bold; color:#006b54;">🎥 یوٹیوب ویڈیو</span><a href="https://youtu.be/' + vid + '" target="_blank" style="color:#004d3d; font-weight:bold; text-decoration:underline;">🔗 یوٹیوب پر کھولیں</a></div></div>'
+            );
+        } else if (type === 'callout') {
+            insertHtmlBlockAtPoint(
+                '<div class="wp-custom-block" style="margin:16px 0; padding:16px 18px; background:linear-gradient(135deg,#eef9f6,#e0f2ec); border-right:5px solid #006b54; border-radius:12px; box-shadow:0 3px 12px rgba(0,107,84,0.08);">' +
+                '<strong style="color:#004d3d; font-size:1.08rem; display:block; margin-bottom:6px;">📌 اہم اعلان / خاص نوٹ</strong>' +
+                '<p style="margin:0;">یہاں اپنا اہم پیغام یا اسلامی نوٹس تحریر فرمائیں۔</p></div>'
+            );
+        } else if (type === 'columns') {
+            insertHtmlBlockAtPoint(
+                '<div class="wp-custom-block" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin:16px 0;">' +
+                '<div style="background:#fff; border:1px solid #d5e5df; padding:16px; border-radius:12px;"><h3>کالم 1</h3><p>پہلے کالم کا مواد یہاں لکھیں۔</p></div>' +
+                '<div style="background:#fff; border:1px solid #d5e5df; padding:16px; border-radius:12px;"><h3>کالم 2</h3><p>دوسرے کالم کا مواد یہاں لکھیں۔</p></div></div>'
+            );
+        } else if (type === 'list') {
+            insertHtmlBlockAtPoint('<ul><li>پہلا اہم نکتہ یہاں لکھیں</li><li>دوسرا اہم نکتہ یہاں لکھیں</li><li>تیسرا اہم نکتہ یہاں لکھیں</li></ul>');
+        } else if (type === 'divider') {
+            insertHtmlBlockAtPoint('<hr style="border:0; border-top:2px dashed #c8ddd6; margin:22px 0;">');
+        } else if (type === 'embed') {
+            const u = prompt('کسی بھی ویب سائٹ، فائل یا MP4/MP3 کا URL درج کریں:');
+            if (!u || !u.trim()) return;
+            const url = u.trim();
+            if (/\.(mp4|webm|ogg)(\?|$)/i.test(url)) {
+                insertHtmlBlockAtPoint('<div class="embedded-video-card wp-custom-block" style="margin:16px 0; border-radius:12px; overflow:hidden; border:1px solid #006b54;"><video controls playsinline preload="metadata" style="width:100%; max-height:460px; background:#000;"><source src="' + escapeHtml(url) + '"></video></div>');
+            } else if (/\.(mp3|m4a|aac|wav|ogg)(\?|$)/i.test(url)) {
+                insertHtmlBlockAtPoint('<div class="user-uploaded-audio wp-custom-block" style="margin:16px 0; padding:14px; background:#eef9f6; border:1.5px solid #006b54; border-radius:12px;"><audio controls preload="metadata" style="width:100%;"><source src="' + escapeHtml(url) + '"></audio></div>');
+            } else {
+                const title = prompt('اس لنک کارڈ کا نام لکھیں:', '🔗 مفید لنک دیکھیں') || url;
+                insertHtmlBlockAtPoint('<div class="wp-custom-block" style="margin:14px 0; padding:14px 18px; background:#eef9f6; border:1.5px solid #006b54; border-radius:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;"><strong style="color:#004d3d;">' + escapeHtml(title) + '</strong><a href="' + escapeHtml(url) + '" target="_blank" style="background:#006b54; color:#ffd700; padding:7px 16px; border-radius:20px; text-decoration:none; font-weight:bold;">کھولیں ↗️</a></div>');
+            }
+        }
+    }
+
+    // ========== LINK MODAL ==========
+    function extractYouTubeId(url) {
+        const m = String(url || '').match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/i);
+        return m ? m[1] : '';
+    }
+
+    function onLinkUrlTyped() {
+        const url = (document.getElementById('linkUrlInput').value || '').trim();
+        const ytId = extractYouTubeId(url);
+        if (ytId) {
+            document.getElementById('linkAsYouTubeCheck').checked = true;
+        }
+    }
+
+    function openLinkModal(forceButton) {
+        const hasActiveSlot = !!document.getElementById('wpActiveInsertSlot');
+        const sel = window.getSelection();
+        let defText = (sel && sel.toString()) ? sel.toString() : (savedSelectionRange ? savedSelectionRange.toString() : '');
+        let defUrl = '';
+        let isBtn = !!forceButton;
+
+        if (!hasActiveSlot && !defText && selectedEl && selectedEl.tagName === 'A') {
+            defText = selectedEl.textContent.trim();
+            defUrl = selectedEl.getAttribute('href') || '';
+        }
+        document.getElementById('linkTextInput').value = defText;
+        document.getElementById('linkUrlInput').value = defUrl;
+        document.getElementById('linkAsButtonCheck').checked = isBtn;
+        document.getElementById('linkAsYouTubeCheck').checked = !!extractYouTubeId(defUrl);
+        openModal('linkModal');
+    }
+
+    function confirmInsertLink() {
+        const text = (document.getElementById('linkTextInput').value || '').trim();
+        const url = (document.getElementById('linkUrlInput').value || '').trim();
+        const asBtn = document.getElementById('linkAsButtonCheck').checked;
+        const newTab = document.getElementById('linkNewTabCheck').checked;
+        const asYouTube = document.getElementById('linkAsYouTubeCheck').checked;
+        if (!url) { alert('❌ لنک URL درج کریں۔'); return; }
+
+        const hasActiveSlot = !!document.getElementById('wpActiveInsertSlot');
+        const ytId = asYouTube ? extractYouTubeId(url) : '';
+        if (ytId) {
+            const titleLabel = (text && text !== url) ? text : '🎥 یوٹیوب ویڈیو';
+            const cardHtml =
+                '<div class="embedded-video-card wp-custom-block" style="margin:18px 0; background:#fff; border:1.5px solid #006b54; border-radius:14px; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,0.08);">' +
+                '<div style="position:relative; width:100%; aspect-ratio:16/9; background:#000;"><iframe src="https://www.youtube-nocookie.com/embed/' + ytId + '" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen loading="lazy"></iframe></div>' +
+                '<div style="padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; background:#eef9f6;">' +
+                '<span style="font-weight:bold; color:#006b54;">' + escapeHtml(titleLabel) + '</span>' +
+                '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener" style="color:#004d3d; font-weight:bold; text-decoration:underline;">🔗 یوٹیوب پر کھولیں</a></div></div>';
+            if (!hasActiveSlot && selectedEl && selectedEl.tagName === 'A') {
+                selectedEl.outerHTML = cardHtml;
+                selectedEl = null;
+            } else {
+                insertHtmlBlockAtPoint(cardHtml);
+            }
+            closeModal('linkModal');
+            showToast('📺 یوٹیوب ویڈیو پلیئر شامل ہو گیا!');
+            return;
+        }
+
+        const label = text || url;
+        const targetAttr = newTab ? ' target="_blank" rel="noopener"' : '';
+        const styleAttr = asBtn
+            ? ' style="display:inline-block; background:linear-gradient(135deg,#006b54,#004d3d); color:#ffd700; padding:10px 22px; border-radius:28px; text-decoration:none; font-weight:bold; box-shadow:0 4px 12px rgba(0,107,84,0.25); margin:6px 0;"'
+            : ' style="color:#006b54; font-weight:bold; text-decoration:underline;"';
+        const anchorHtml = '<a href="' + escapeHtml(url) + '"' + targetAttr + styleAttr + '>' + escapeHtml(label) + '</a>';
+
+        if (!hasActiveSlot && selectedEl && selectedEl.tagName === 'A') {
+            selectedEl.outerHTML = anchorHtml;
+            selectedEl = null;
+        } else {
+            insertHtmlBlockAtPoint(asBtn ? '<div style="margin:12px 0;">' + anchorHtml + '</div>' : anchorHtml);
+        }
+        closeModal('linkModal');
+        showToast('✅ لنک شامل ہو گیا!');
+    }
+
+    // ========== IMAGE & CHUNKED VIDEO/AUDIO UPLOAD (100% COMPATIBLE WITH index.html) ==========
+    function triggerMediaPicker(kind) {
+        if (kind === 'image') document.getElementById('hiddenImagePicker').click();
+        else if (kind === 'video') document.getElementById('hiddenVideoPicker').click();
+        else if (kind === 'audio') document.getElementById('hiddenAudioPicker').click();
+    }
+
+    function replaceSelectedImage() {
+        document.getElementById('hiddenReplaceImgPicker').click();
+    }
+
+    function compressImageFile(file, callback) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height, maxD = 1000;
+                if (w > maxD || h > maxD) {
+                    if (w > h) { h = Math.round(h * maxD / w); w = maxD; }
+                    else { w = Math.round(w * maxD / h); h = maxD; }
+                }
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                callback(canvas.toDataURL('image/jpeg', 0.84));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function handleImageFileSelected(ev) {
+        const file = ev.target.files && ev.target.files[0];
+        ev.target.value = '';
+        if (!file) return;
+        compressImageFile(file, (dataUrl) => {
+            insertHtmlBlockAtPoint('<div class="user-uploaded-img wp-custom-block" style="text-align:center; margin:16px 0;"><img src="' + dataUrl + '" alt="' + escapeHtml(file.name) + '" style="max-width:100%; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.12);" loading="lazy"></div>');
+            showToast('🖼️ تصویر کامیابی سے شامل ہو گئی!');
+        });
+    }
+
+    function handleReplaceImageSelected(ev) {
+        const file = ev.target.files && ev.target.files[0];
+        ev.target.value = '';
+        if (!file || !selectedEl) return;
+        compressImageFile(file, (dataUrl) => {
+            const img = (selectedEl.tagName === 'IMG') ? selectedEl : selectedEl.querySelector('img');
+            if (img) {
+                img.src = dataUrl;
+                document.getElementById('elSrcInput').value = dataUrl;
+                markDirty();
+                pushUndoSnapshot();
+                showToast('✅ تصویر تبدیل ہو گئی!');
+            }
+        });
+    }
+
+    function readSliceBase64(slice) {
+        return new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = (e) => {
+                const s = e.target.result || '';
+                const idx = s.indexOf(',');
+                resolve(idx >= 0 ? s.slice(idx + 1) : s);
+            };
+            r.onerror = () => reject(new Error('Chunk read error'));
+            r.readAsDataURL(slice);
+        });
+    }
+
+    async function writeFirebaseWithRetry(ref, data) {
+        for (let a = 1; a <= 5; a++) {
+            try {
+                await Promise.race([
+                    ref.set(data),
+                    new Promise((_, rej) => setTimeout(() => rej(new Error('Upload timeout')), 25000))
+                ]);
+                return;
+            } catch (e) {
+                if (a === 5) throw e;
+                await new Promise(r => setTimeout(r, 450 * a));
+            }
+        }
+    }
+
+    function detectMime(file, mediaType) {
+        const n = (file.name || '').toLowerCase();
+        if (n.endsWith('.mp3') || n.endsWith('.mp2')) return 'audio/mpeg';
+        if (n.endsWith('.aac')) return 'audio/aac';
+        if (n.endsWith('.m4a') || n.endsWith('.alac')) return 'audio/mp4';
+        if (n.endsWith('.wav')) return 'audio/wav';
+        if (n.endsWith('.ogg') || n.endsWith('.oga') || n.endsWith('.opus') || n.endsWith('.spx')) return 'audio/ogg';
+        if (n.endsWith('.flac')) return 'audio/flac';
+        if (n.endsWith('.wma')) return 'audio/x-ms-wma';
+        if (n.endsWith('.amr')) return 'audio/amr';
+        if (n.endsWith('.3gp')) return mediaType === 'video' ? 'video/3gpp' : 'audio/3gpp';
+        if (n.endsWith('.aiff') || n.endsWith('.aif')) return 'audio/aiff';
+        if (n.endsWith('.caf')) return 'audio/x-caf';
+        if (n.endsWith('.weba')) return 'audio/webm';
+        if (n.endsWith('.mid') || n.endsWith('.midi')) return 'audio/midi';
+        if (n.endsWith('.ac3')) return 'audio/ac3';
+        if (n.endsWith('.webm')) return mediaType === 'video' ? 'video/webm' : 'audio/webm';
+        if (n.endsWith('.mov')) return 'video/quicktime';
+        if (n.endsWith('.mkv')) return 'video/x-matroska';
+        if (n.endsWith('.avi')) return 'video/x-msvideo';
+        if (n.endsWith('.wmv')) return 'video/x-ms-wmv';
+        if (n.endsWith('.flv')) return 'video/x-flv';
+        if (n.endsWith('.ogv')) return 'video/ogg';
+        if (n.endsWith('.3g2')) return 'video/3gpp2';
+        if (n.endsWith('.mpeg') || n.endsWith('.mpg')) return 'video/mpeg';
+        if (n.endsWith('.ts') || n.endsWith('.mts') || n.endsWith('.m2ts')) return 'video/mp2t';
+        if (n.endsWith('.mp4') || n.endsWith('.m4v')) return mediaType === 'video' ? 'video/mp4' : 'audio/mp4';
+        return file.type || (mediaType === 'video' ? 'video/mp4' : 'audio/mpeg');
+    }
+
+    async function handleChunkedMediaSelected(ev, mediaType) {
+        const file = ev.target.files && ev.target.files[0];
+        ev.target.value = '';
+        if (!file) return;
+
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        const fileName = file.name || (mediaType + '_' + Date.now() + (mediaType === 'video' ? '.mp4' : '.mp3'));
+        const mimeType = detectMime(file, mediaType);
+        const ext = (fileName.split('.').pop() || (mediaType === 'video' ? 'MP4' : 'MP3')).toUpperCase();
+        const mediaId = (mediaType === 'video' ? 'vid_' : 'aud_') + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+
+        document.getElementById('upTitle').textContent = mediaType === 'video' ? '🎬 ویڈیو اپلوڈ ہو رہی ہے...' : '🎙️ آڈیو اپلوڈ ہو رہی ہے...';
+        document.getElementById('upFileInfo').textContent = fileName + ' (' + sizeMb + ' MB | ' + ext + ')';
+        document.getElementById('upProgressFill').style.width = '2%';
+        document.getElementById('upPctText').textContent = '2%';
+        document.getElementById('upStatusText').textContent = 'فائل حصوں میں اپلوڈ ہو رہی ہے...';
+        openModal('uploadProgressModal');
+
+        const CHUNK_SIZE = 1024 * 1024;
+        const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
+
+        try {
+            await writeFirebaseWithRetry(database.ref('media_chunks/' + mediaId + '/meta'), {
+                fileName, mimeType, sizeBytes: file.size, sizeMb, totalChunks, mediaType, timestamp: Date.now()
+            });
+
+            let done = 0;
+            const CONC = 4;
+            for (let s = 0; s < totalChunks; s += CONC) {
+                const batch = [];
+                for (let idx = s; idx < Math.min(totalChunks, s + CONC); idx++) {
+                    batch.push((async () => {
+                        const slice = file.slice(idx * CHUNK_SIZE, Math.min(file.size, (idx + 1) * CHUNK_SIZE));
+                        const b64 = await readSliceBase64(slice);
+                        await writeFirebaseWithRetry(database.ref('media_chunks/' + mediaId + '/chunks/' + idx), b64);
+                        done++;
+                        const pct = Math.min(99, Math.max(3, Math.round((done / totalChunks) * 99)));
+                        document.getElementById('upProgressFill').style.width = pct + '%';
+                        document.getElementById('upPctText').textContent = pct + '%';
+                        document.getElementById('upStatusText').textContent = 'اپلوڈ جاری: ' + done + ' / ' + totalChunks + ' حصے';
+                    })());
+                }
+                await Promise.all(batch);
+            }
+
+            const blockHtml = buildChunkedMediaCardHtml(mediaId, mediaType, fileName, sizeMb, mimeType);
+            insertHtmlBlockAtPoint(blockHtml);
+            closeModal('uploadProgressModal');
+            showToast('✅ ' + (mediaType === 'video' ? 'ویڈیو' : 'آڈیو') + ' صفحے میں لگ گئی! اب پبلش بٹن دبائیں۔');
+        } catch (err) {
+            closeModal('uploadProgressModal');
+            alert('❌ اپلوڈ میں خرابی: ' + err.message);
+        }
+    }
+
+    function buildChunkedMediaCardHtml(mediaId, mediaType, fileName, sizeMb, mimeType) {
+        const safeName = escapeHtml(fileName);
+        if (mediaType === 'video') {
+            return '<div class="user-uploaded-video fb-chunked-media" data-media-id="' + mediaId + '" data-media-type="video" data-file-name="' + safeName + '" data-file-size="' + escapeHtml(sizeMb) + ' MB" data-mime="' + escapeHtml(mimeType) + '" style="margin:18px 0; background:var(--bg-card,#fff); border:1.5px solid #006b54; border-radius:14px; overflow:hidden; box-shadow:0 4px 15px rgba(0,107,84,0.12); max-width:100%;">' +
+                '<div class="chunk-status-bar" style="padding:10px 14px; background:#fff9e6; color:#004d3d; font-size:0.86rem; font-weight:bold; text-align:center; border-bottom:1px solid #e0e8e5;">⏳ ویڈیو لوڈ ہو رہی ہے...</div>' +
+                '<video controls playsinline preload="metadata" style="width:100%; max-height:480px; background:#000; display:block;"></video>' +
+                '<div style="padding:10px 16px; background:#eef9f6; font-size:0.88rem; font-weight:bold; color:#006b54; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">' +
+                '<span style="overflow-wrap:anywhere;">🎬 گیلری ویڈیو: ' + safeName + ' (' + escapeHtml(sizeMb) + ' MB)</span>' +
+                '<a class="media-download-btn" href="javascript:void(0)" data-media-id="' + mediaId + '" style="background:#006b54; color:#ffd700; padding:6px 14px; border-radius:20px; text-decoration:none; font-size:0.82rem; font-weight:bold;">⬇️ ڈاؤنلوڈ کریں</a>' +
+                '</div></div>';
+        }
+        return '<div class="user-uploaded-audio fb-chunked-media" data-media-id="' + mediaId + '" data-media-type="audio" data-file-name="' + safeName + '" data-file-size="' + escapeHtml(sizeMb) + ' MB" data-mime="' + escapeHtml(mimeType) + '" style="margin:18px 0; background:linear-gradient(135deg,#f0fdf4,#e6f7f2); border:2px solid #006b54; border-radius:14px; padding:16px 18px; box-shadow:0 4px 15px rgba(0,107,84,0.12); direction:rtl; text-align:right; max-width:100%;">' +
+            '<div class="chunk-status-bar" style="margin-bottom:8px; padding:6px 10px; background:#fff9e6; color:#004d3d; font-size:0.82rem; font-weight:bold; border-radius:8px; text-align:center;">⏳ آڈیو لوڈ ہو رہی ہے...</div>' +
+            '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">' +
+            '<strong style="color:#006b54;">🎙️ صوتی بیان / آڈیو: ' + safeName + '</strong>' +
+            '<span style="background:#006b54; color:#fff; font-size:0.75rem; padding:3px 10px; border-radius:12px;">' + escapeHtml(sizeMb) + ' MB</span></div>' +
+            '<audio controls preload="metadata" style="width:100%; height:42px;"></audio>' +
+            '<div style="display:flex; justify-content:space-between; margin-top:10px;"><a class="media-download-btn" href="javascript:void(0)" data-media-id="' + mediaId + '" style="background:#006b54; color:#ffd700; padding:5px 14px; border-radius:20px; text-decoration:none; font-size:0.8rem; font-weight:bold;">⬇️ ڈاؤنلوڈ کریں</a></div></div>';
+    }
+
+    // ========== PUBLISH TO LIVE WEBSITE & REVISIONS ==========
+    async function publishCurrentTarget() {
+        if (!activeTarget) return;
+        const btn = document.getElementById('publishLiveBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> پبلش ہو رہا ہے...';
+
+        const title = document.getElementById('docTitleInput').value.trim() || activeTarget.id;
+        const html = getCanvasHtml();
+        const now = Date.now();
+
+        try {
+            // Save WordPress Revision first
+            const revKey = activeTarget.kind + '_' + activeTarget.id.replace(/[.#$\[\]\/]/g, '_');
+            await database.ref('site_live_edits/revisions/' + revKey).push({
+                title, html, timestamp: now
+            });
+
+            if (activeTarget.kind === 'static') {
+                const payload = { title, html, timestamp: now };
+                await database.ref('site_live_edits/sections/' + activeTarget.id).set(payload);
+                liveSectionOverrides[activeTarget.id] = payload;
+                document.getElementById('revertStaticBtn').style.display = 'block';
+            } else if (activeTarget.kind === 'page') {
+                const payload = { title, content: html, timestamp: now };
+                await database.ref('pages/' + activeTarget.id).update(payload);
+                firebasePagesMap[activeTarget.id] = { ...(firebasePagesMap[activeTarget.id] || {}), ...payload };
+            } else if (activeTarget.kind === 'post') {
+                const payload = { title, content: html, timestamp: now };
+                await database.ref('posts/' + activeTarget.id).update(payload);
+                firebasePostsMap[activeTarget.id] = { ...(firebasePostsMap[activeTarget.id] || {}), ...payload };
+            }
+
+            clearDirty();
+            renderNavLists();
+            if (activeTarget.kind === 'static' && liveSiteHasReceiver === false) {
+                showToast('✅ Firebase میں سیو ہو گیا! لائیو دکھانے کے لیے نئی index.html Vercel پر اپلوڈ کریں۔');
+            } else {
+                showToast('🚀 ماشاءاللہ! لائیو ویب سائٹ پر فوراً پبلش ہو گیا!');
+            }
+        } catch (err) {
+            alert('❌ پبلش کرنے میں خرابی: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-rocket"></i> لائیو پبلش کریں';
+        }
+    }
+
+    async function revertStaticSectionToOriginal() {
+        if (!activeTarget || activeTarget.kind !== 'static') return;
+        if (!confirm('کیا آپ واقعی اس صفحے کی ترامیم ختم کر کے ویب سائٹ کا اصل مواد بحال کرنا چاہتے ہیں؟')) return;
+        await database.ref('site_live_edits/sections/' + activeTarget.id).remove();
+        delete liveSectionOverrides[activeTarget.id];
+        clearDirty();
+        selectTarget('static', activeTarget.id);
+        showToast('🔄 اصل صفحہ بحال ہو گیا!');
+    }
+
+    async function deleteCurrentDocument() {
+        if (!activeTarget || activeTarget.kind === 'static') return;
+        if (!confirm('کیا آپ واقعی "' + activeTarget.id + '" کو ہمیشہ کے لیے حذف کرنا چاہتے ہیں؟')) return;
+        const node = activeTarget.kind === 'page' ? 'pages/' : 'posts/';
+        await database.ref(node + activeTarget.id).remove();
+        if (activeTarget.kind === 'page') delete firebasePagesMap[activeTarget.id];
+        else delete firebasePostsMap[activeTarget.id];
+        clearDirty();
+        activeTarget = null;
+        renderNavLists();
+        if (staticSectionsMap['about']) selectTarget('static', 'about');
+        showToast('🗑️ کامیابی سے حذف ہو گیا!');
+    }
+
+    // ========== NEW PAGE / POST MODAL ==========
+    function openNewPageModal(kind) {
+        newDocKind = kind;
+        document.getElementById('newPageModalTitle').textContent = kind === 'page' ? '➕ نیا ویب سائٹ صفحہ بنائیں' : '📝 نئی پوسٹ شامل کریں';
+        document.getElementById('newDocSlugWrap').style.display = kind === 'page' ? 'block' : 'none';
+        document.getElementById('newDocTitle').value = '';
+        document.getElementById('newDocSlug').value = '';
+        openModal('newPageModal');
+    }
+
+    function autoFillSlug() {
+        if (newDocKind !== 'page') return;
+        const t = document.getElementById('newDocTitle').value;
+        const slug = t.trim().toLowerCase().replace(/[^a-z0-9\u0600-\u06FF]+/g, '-').replace(/^-+|-+$/g, '') || ('page-' + Date.now());
+        document.getElementById('newDocSlug').value = slug;
+    }
+
+    async function confirmCreateNewDoc() {
+        const title = document.getElementById('newDocTitle').value.trim();
+        if (!title) { alert('❌ عنوان درج کریں۔'); return; }
+        const now = Date.now();
+        if (newDocKind === 'page') {
+            let slug = document.getElementById('newDocSlug').value.trim().replace(/[.#$\[\]\/]/g, '-');
+            if (!slug) slug = 'page-' + now;
+            if (firebasePagesMap[slug] && !confirm('اس Slug کا صفحہ پہلے سے موجود ہے، کیا اپڈیٹ کریں؟')) return;
+            const data = { title, content: '<h2>' + escapeHtml(title) + '</h2><p>یہاں نیا مواد شامل کریں...</p>', timestamp: now };
+            await database.ref('pages/' + slug).set(data);
+            firebasePagesMap[slug] = data;
+            closeModal('newPageModal');
+            clearDirty();
+            selectTarget('page', slug);
+            showToast('✅ نیا صفحہ بن گیا!');
+        } else {
+            const data = { title, content: '<p>نئی پوسٹ کا مواد یہاں تحریر کریں...</p>', timestamp: now };
+            const ref = await database.ref('posts').push(data);
+            firebasePostsMap[ref.key] = data;
+            closeModal('newPageModal');
+            clearDirty();
+            selectTarget('post', ref.key);
+            showToast('✅ نئی پوسٹ بن گئی!');
+        }
+    }
+
+    // ========== WORDPRESS CUSTOMIZER (HEADER, COLORS, MENU, FOOTER, CSS) ==========
+    function populateCustomizerForm() {
+        document.getElementById('custSiteTitle').value = customizerData.siteTitle || '';
+        document.getElementById('custSiteSub').value = customizerData.siteSub || '';
+        document.getElementById('custBismillah').value = customizerData.bismillah || '';
+        document.getElementById('custDurood').value = customizerData.durood || '';
+        document.getElementById('custMarquee').value = customizerData.marquee || '';
+        document.getElementById('custFooterText').value = customizerData.footerText || '';
+        document.getElementById('custExtraCss').value = customizerData.extraCss || '';
+
+        const pCol = customizerData.primaryColor || '#006b54';
+        const gCol = customizerData.goldColor || '#d4af37';
+        const bCol = customizerData.bgColor || '#f0f5f2';
+        document.getElementById('custPrimaryColor').value = pCol;
+        document.getElementById('custPrimaryHex').value = pCol;
+        document.getElementById('custGoldColor').value = gCol;
+        document.getElementById('custGoldHex').value = gCol;
+        document.getElementById('custBgColor').value = bCol;
+        document.getElementById('custBgHex').value = bCol;
+        renderCustomMenuLinksList();
+    }
+
+    [['custPrimaryColor','custPrimaryHex'],['custGoldColor','custGoldHex'],['custBgColor','custBgHex']].forEach(([cp, hx]) => {
+        document.getElementById(cp).addEventListener('input', (e) => { document.getElementById(hx).value = e.target.value; });
+        document.getElementById(hx).addEventListener('input', (e) => {
+            if (/^#[0-9a-f]{6}$/i.test(e.target.value)) document.getElementById(cp).value = e.target.value;
+        });
+    });
+
+    function renderCustomMenuLinksList() {
+        const list = customizerData.menuLinks || [];
+        document.getElementById('customMenuLinksList').innerHTML = list.map((item, idx) =>
+            `<div style="display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid #ddd; padding:5px 8px; border-radius:6px; margin-bottom:5px; font-size:0.78rem;">
+                <span><strong>${escapeHtml(item.label)}</strong> <small dir="ltr" style="color:#666;">(${escapeHtml(item.href)})</small></span>
+                <button onclick="removeCustomMenuLink(${idx})" style="background:none; border:none; color:red; cursor:pointer;">🗑️</button>
+            </div>`
+        ).join('');
+    }
+
+    function addCustomMenuLink() {
+        const label = document.getElementById('newMenuLabel').value.trim();
+        const href = document.getElementById('newMenuHref').value.trim();
+        if (!label || !href) { alert('نام اور لنک دونوں درج کریں۔'); return; }
+        customizerData.menuLinks = customizerData.menuLinks || [];
+        customizerData.menuLinks.push({ label, href });
+        document.getElementById('newMenuLabel').value = '';
+        document.getElementById('newMenuHref').value = '';
+        renderCustomMenuLinksList();
+        showToast('➕ مینو لنک فہرست میں شامل — اب نیچے "ڈیزائن لائیو سیو کریں" دبائیں');
+    }
+
+    function removeCustomMenuLink(idx) {
+        if (!customizerData.menuLinks) return;
+        customizerData.menuLinks.splice(idx, 1);
+        renderCustomMenuLinksList();
+    }
+
+    async function publishCustomizer() {
+        const pHex = document.getElementById('custPrimaryHex').value.trim();
+        const gHex = document.getElementById('custGoldHex').value.trim();
+        const bHex = document.getElementById('custBgHex').value.trim();
+        customizerData = {
+            siteTitle: document.getElementById('custSiteTitle').value.trim(),
+            siteSub: document.getElementById('custSiteSub').value.trim(),
+            bismillah: document.getElementById('custBismillah').value.trim(),
+            durood: document.getElementById('custDurood').value.trim(),
+            marquee: document.getElementById('custMarquee').value.trim(),
+            footerText: document.getElementById('custFooterText').value.trim(),
+            extraCss: document.getElementById('custExtraCss').value.trim(),
+            primaryColor: (pHex && pHex !== '#006b54') ? pHex : '',
+            goldColor: (gHex && gHex !== '#d4af37') ? gHex : '',
+            bgColor: (bHex && bHex !== '#f0f5f2') ? bHex : '',
+            menuLinks: customizerData.menuLinks || [],
+            timestamp: Date.now()
+        };
+        await database.ref('site_live_edits/customize').set(customizerData);
+        if (liveSiteHasReceiver === false) {
+            showToast('✅ ڈیزائن Firebase میں سیو ہو گیا! لائیو دیکھنے کے لیے نئی index.html اپلوڈ کریں۔');
+        } else {
+            showToast('🎨 ویب سائٹ ڈیزائن اور ہیڈر/مینو لائیو اپڈیٹ ہو گیا!');
+        }
+    }
+
+    async function resetCustomizerToDefault() {
+        if (!confirm('کیا آپ واقعی ہیڈر، رنگ اور کسٹم مینو کو اصل حالت پر بحال کرنا چاہتے ہیں؟')) return;
+        await database.ref('site_live_edits/customize').remove();
+        customizerData = {};
+        populateCustomizerForm();
+        showToast('🔄 ڈیزائن اصل حالت پر بحال ہو گیا!');
+    }
+
+    // ========== WORDPRESS MEDIA LIBRARY (REUSE EXISTING UPLOADED VIDEOS/AUDIOS/IMAGES) ==========
+    async function openMediaLibraryModal() {
+        openModal('mediaLibraryModal');
+        const grid = document.getElementById('mediaLibGrid');
+        grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; padding:30px;">⏳ فائر بیس سے میڈیا لوڈ ہو رہا ہے...</p>';
+
+        try {
+            mediaLibraryItems = [];
+            const keysRes = await fetch(firebaseConfig.databaseURL + '/media_chunks.json?shallow=true');
+            if (keysRes.ok) {
+                const keysObj = await keysRes.json();
+                const ids = keysObj ? Object.keys(keysObj) : [];
+                const metas = await Promise.all(ids.map(async (id) => {
+                    try {
+                        const m = await (await fetch(firebaseConfig.databaseURL + '/media_chunks/' + id + '/meta.json')).json();
+                        return m ? { id, ...m } : null;
+                    } catch (e) { return null; }
+                }));
+                metas.filter(Boolean).sort((a,b) => (b.timestamp||0) - (a.timestamp||0)).forEach(m => {
+                    mediaLibraryItems.push({
+                        kind: m.mediaType === 'audio' ? 'audio' : 'video',
+                        title: m.fileName || m.id,
+                        sub: (m.sizeMb || '?') + ' MB',
+                        html: buildChunkedMediaCardHtml(m.id, m.mediaType || 'video', m.fileName || m.id, m.sizeMb || '', m.mimeType || 'video/mp4')
+                    });
+                });
+            }
+            // Scan YouTube & images used across pages
+            const seenYt = new Set();
+            Object.values(firebasePagesMap).forEach(p => {
+                if (!p || !p.content) return;
+                const matches = p.content.matchAll(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|watch\?v=|shorts\/))([\w-]{11})/gi);
+                for (const m of matches) {
+                    if (!seenYt.has(m[1])) {
+                        seenYt.add(m[1]);
+                        mediaLibraryItems.push({
+                            kind: 'youtube',
+                            title: 'YouTube: ' + m[1],
+                            thumb: 'https://img.youtube.com/vi/' + m[1] + '/mqdefault.jpg',
+                            sub: p.title || '',
+                            html: '<div class="embedded-video-card wp-custom-block" style="margin:18px 0; background:#fff; border:1px solid #d5e5df; border-radius:14px; overflow:hidden;"><div style="position:relative; width:100%; aspect-ratio:16/9; background:#000;"><iframe src="https://www.youtube-nocookie.com/embed/' + m[1] + '" style="position:absolute; inset:0; width:100%; height:100%; border:0;" allowfullscreen loading="lazy"></iframe></div></div>'
+                        });
+                    }
+                }
+            });
+            renderMediaLibraryGrid();
+        } catch (e) {
+            grid.innerHTML = '<p style="color:red;">❌ میڈیا لوڈ کرنے میں خرابی</p>';
+        }
+    }
+
+    function renderMediaLibraryGrid() {
+        const q = (document.getElementById('mediaLibSearch').value || '').trim().toLowerCase();
+        const filtered = mediaLibraryItems.filter(it => !q || it.title.toLowerCase().includes(q) || it.sub.toLowerCase().includes(q));
+        const grid = document.getElementById('mediaLibGrid');
+        if (!filtered.length) {
+            grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; padding:30px; color:#666;">کوئی میڈیا نہیں ملا۔</p>';
+            return;
+        }
+        grid.innerHTML = filtered.map((it, i) => {
+            const idx = mediaLibraryItems.indexOf(it);
+            const thumb = it.thumb
+                ? '<img src="' + escapeHtml(it.thumb) + '" alt="">'
+                : (it.kind === 'audio' ? '🎙️' : '🎬');
+            return `<div class="media-lib-card">
+                <div class="media-lib-thumb">${thumb}</div>
+                <div class="media-lib-info">
+                    <div>
+                        <div style="font-weight:700; word-break:break-word;">${escapeHtml(it.title)}</div>
+                        <div style="color:#666; font-size:0.7rem;">${escapeHtml(it.sub)}</div>
+                    </div>
+                    <button class="btn-wp-primary" style="width:100%; padding:6px;" onclick="insertMediaFromLibrary(${idx})">➕ صفحے میں لگائیں</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function insertMediaFromLibrary(idx) {
+        const item = mediaLibraryItems[idx];
+        if (!item) return;
+        insertHtmlBlockAtPoint(item.html);
+        closeModal('mediaLibraryModal');
+        showToast('✅ میڈیا صفحے میں شامل ہو گیا!');
+    }
+
+    // ========== REVISIONS & RESTORE ==========
+    async function openRevisionsModal() {
+        if (!activeTarget) return;
+        openModal('revisionsModal');
+        const body = document.getElementById('revisionsListBody');
+        body.innerHTML = '<p style="text-align:center; padding:20px;">⏳ پرانے ورژنز لوڈ ہو رہے ہیں...</p>';
+        const revKey = activeTarget.kind + '_' + activeTarget.id.replace(/[.#$\[\]\/]/g, '_');
+        const snap = await database.ref('site_live_edits/revisions/' + revKey).limitToLast(15).once('value');
+        const val = snap.val() || {};
+        const list = Object.entries(val).sort((a,b) => (b[1].timestamp||0) - (a[1].timestamp||0));
+        window._cachedRevs = list;
+        if (!list.length) {
+            body.innerHTML = '<p style="text-align:center; color:#666; padding:25px;">اس صفحے کا ابھی کوئی پرانا محفوظ ورژن نہیں ہے۔ جب آپ "لائیو پبلش کریں" دبائیں گے تو ہر ورژن یہاں محفوظ ہوتا جائے گا۔</p>';
+            return;
+        }
+        body.innerHTML = list.map(([k, r], idx) => `
+            <div style="border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                <div>
+                    <strong style="color:var(--brand-dark);">${escapeHtml(r.title || activeTarget.id)}</strong>
+                    <div style="font-size:0.76rem; color:#666;">🕒 ${new Date(r.timestamp).toLocaleString('ur-PK')}</div>
+                </div>
+                <button class="btn-wp-secondary" onclick="restoreRevision(${idx})">🔄 یہ ورژن واپس لائیں</button>
+            </div>
+        `).join('');
+    }
+
+    function restoreRevision(idx) {
+        const pair = window._cachedRevs && window._cachedRevs[idx];
+        if (!pair) return;
+        const r = pair[1];
+        document.getElementById('docTitleInput').value = r.title || '';
+        applyHtmlToActiveEditor(r.html || '');
+        pushUndoSnapshot();
+        markDirty();
+        closeModal('revisionsModal');
+        showToast('📜 پرانا ورژن کینوس میں واپس آ گیا! لائیو کرنے کے لیے پبلش بٹن دبائیں۔');
+    }
+
+    // ========== LIVE ANNOUNCEMENTS MANAGER ==========
+    async function openAnnouncementsModal() {
+        openModal('announcementsModal');
+        await loadAnnouncementsModalList();
+    }
+    async function loadAnnouncementsModalList() {
+        const body = document.getElementById('announcementsListBody');
+        const snap = await database.ref('announcements').once('value');
+        const data = snap.val() || {};
+        const entries = Object.entries(data).sort((a,b) => (b[1].timestamp||0) - (a[1].timestamp||0));
+        body.innerHTML = entries.map(([k, a]) => `
+            <div style="border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                <span style="font-size:0.86rem;">${escapeHtml(a.text)}</span>
+                <button class="btn-wp-outline" style="color:red; border-color:red;" onclick="deleteAnn('${k}')">🗑️</button>
+            </div>
+        `).join('') || '<p style="text-align:center; color:#666;">کوئی اعلان نہیں</p>';
+    }
+    async function addLiveAnnouncement() {
+        const inp = document.getElementById('newAnnInput');
+        const txt = inp.value.trim();
+        if (!txt) return;
+        await database.ref('announcements').push({ text: txt, timestamp: Date.now() });
+        inp.value = '';
+        await loadAnnouncementsModalList();
+        showToast('📢 نیا اعلان لائیو شامل ہو گیا!');
+    }
+    async function deleteAnn(key) {
+        await database.ref('announcements/' + key).remove();
+        await loadAnnouncementsModalList();
+        showToast('🗑️ اعلان حذف ہو گیا');
+    }
+
+    function copyDirectUrl() {
+        const inp = document.getElementById('metaDirectUrl');
+        navigator.clipboard.writeText(inp.value).then(() => showToast('📋 لنک کاپی ہو گیا!'));
+    }
+
+    // ========== EXPORT BAKED index.html SNAPSHOT ==========
+    async function downloadBakedHtml() {
+        if (!rawSiteHtml) {
+            rawSiteHtml = await fetchRealWebsiteHtml();
+        }
+        if (!rawSiteHtml) { alert('❌ ویب سائٹ HTML لوڈ نہیں ہو سکی۔'); return; }
+        const doc = new DOMParser().parseFromString(rawSiteHtml, 'text/html');
+
+        // Apply all current static section overrides (plus unsaved current static editor buffer if active)
+        const tempOverrides = { ...liveSectionOverrides };
+        if (activeTarget && activeTarget.kind === 'static') {
+            tempOverrides[activeTarget.id] = { title: document.getElementById('docTitleInput').value, html: getCanvasHtml() };
+        }
+        Object.entries(tempOverrides).forEach(([id, ov]) => {
+            const el = doc.getElementById(id);
+            if (el && ov && ov.html) el.innerHTML = ov.html;
+        });
+
+        // Apply customizer
+        if (customizerData.siteTitle) { const h1 = doc.querySelector('.site-header h1'); if (h1) h1.textContent = customizerData.siteTitle; }
+        if (customizerData.siteSub) { const sub = doc.querySelector('.site-header .header-sub'); if (sub) sub.textContent = customizerData.siteSub; }
+
+        const finalHtml = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+        const blob = new Blob([finalHtml], { type: 'text/html;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'index.html';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => a.remove(), 400);
+        showToast('💾 اپڈیٹڈ index.html ڈاؤنلوڈ ہو گئی!');
+    }
+</script>
+</body>
+</html>
